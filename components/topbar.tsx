@@ -7,6 +7,7 @@ import { useTheme } from "@/components/theme-context"
 const PAGE_TITLES: Record<string, string> = {
   "/": "Morning Brief",
   "/new-formulation": "New Formulation",
+  "/formula-output": "Formula Output",
   "/formulations": "My Formulations",
   "/partner": "Formulation Partner",
   "/regulatory": "Regulatory Database",
