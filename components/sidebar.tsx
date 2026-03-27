@@ -12,31 +12,36 @@ import {
   TestTube,
   Settings,
 } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { useTheme } from "@/components/theme-context"
 
 type NavItem = {
   icon: React.ElementType
   label: string
+  href: string
   soon?: boolean
 }
 
 const primaryNav: NavItem[] = [
-  { icon: Sun, label: "Morning Brief" },
-  { icon: PlusCircle, label: "New Formulation" },
-  { icon: Grid, label: "My Formulations" },
-  { icon: FlaskConical, label: "Formulation Partner" },
-  { icon: Shield, label: "Regulatory Database" },
-  { icon: BarChart2, label: "Market Intelligence" },
+  { icon: Sun, label: "Morning Brief", href: "/" },
+  { icon: PlusCircle, label: "New Formulation", href: "/new-formulation" },
+  { icon: Grid, label: "My Formulations", href: "/formulations" },
+  { icon: FlaskConical, label: "Formulation Partner", href: "/partner" },
+  { icon: Shield, label: "Regulatory Database", href: "/regulatory" },
+  { icon: BarChart2, label: "Market Intelligence", href: "/market" },
 ]
 
 const secondaryNav: NavItem[] = [
-  { icon: BookOpen, label: "Lab Journal", soon: true },
-  { icon: Layers, label: "Batch Tracking", soon: true },
-  { icon: TestTube, label: "Stability Tests", soon: true },
+  { icon: BookOpen, label: "Lab Journal", href: "/journal", soon: true },
+  { icon: Layers, label: "Batch Tracking", href: "/batch", soon: true },
+  { icon: TestTube, label: "Stability Tests", href: "/stability", soon: true },
 ]
 
 export function Sidebar() {
   const { dark, toggleDark } = useTheme()
+  const pathname = usePathname()
+
   return (
     <aside
       style={{ width: 240, backgroundColor: "#0D1B2A" }}
@@ -60,25 +65,28 @@ export function Sidebar() {
 
       {/* Primary Nav */}
       <nav className="flex flex-col mt-4 px-0">
-        {primaryNav.map((item, i) => {
-          const isActive = i === 0
+        {primaryNav.map((item) => {
+          const isActive = pathname === item.href
           const Icon = item.icon
           return (
-            <button
+            <Link
               key={item.label}
+              href={item.href}
               style={
                 isActive
                   ? {
                       borderLeft: "3px solid #D4A843",
                       backgroundColor: "rgba(212,168,67,0.10)",
                       paddingLeft: 9,
+                      textDecoration: "none",
                     }
                   : {
                       borderLeft: "3px solid transparent",
                       paddingLeft: 9,
+                      textDecoration: "none",
                     }
               }
-              className="flex items-center gap-3 h-11 pr-3 w-full text-left group"
+              className="flex items-center gap-3 h-11 pr-3 w-full group"
               onMouseEnter={(e) => {
                 if (!isActive)
                   (e.currentTarget as HTMLElement).style.backgroundColor =
@@ -103,7 +111,7 @@ export function Sidebar() {
               >
                 {item.label}
               </span>
-            </button>
+            </Link>
           )
         })}
       </nav>
@@ -230,24 +238,32 @@ export function Sidebar() {
         </div>
 
         {/* CTA Button */}
-        <button
-          style={{
-            backgroundColor: "#D4A843",
-            color: "#0D1B2A",
-            fontWeight: 500,
-            fontSize: 13,
-            height: 40,
-            borderRadius: 8,
-            width: "100%",
-            marginTop: 12,
-            border: "none",
-            cursor: "pointer",
-          }}
-          className="flex items-center justify-center gap-2"
+        <Link
+          href="/new-formulation"
+          style={{ textDecoration: "none" }}
         >
-          <PlusCircle size={15} />
-          New Formulation
-        </button>
+          <button
+            style={{
+              backgroundColor: "#D4A843",
+              color: "#0D1B2A",
+              fontWeight: 500,
+              fontSize: 13,
+              height: 40,
+              borderRadius: 8,
+              width: "100%",
+              marginTop: 12,
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            <PlusCircle size={15} />
+            New Formulation
+          </button>
+        </Link>
       </div>
     </aside>
   )

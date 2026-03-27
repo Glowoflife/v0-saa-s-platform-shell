@@ -1,14 +1,22 @@
 "use client"
 
 import { Zap, Bell } from "lucide-react"
+import { usePathname } from "next/navigation"
 import { useTheme } from "@/components/theme-context"
 
-interface TopbarProps {
-  title?: string
+const PAGE_TITLES: Record<string, string> = {
+  "/": "Morning Brief",
+  "/new-formulation": "New Formulation",
+  "/formulations": "My Formulations",
+  "/partner": "Formulation Partner",
+  "/regulatory": "Regulatory Database",
+  "/market": "Market Intelligence",
 }
 
-export function Topbar({ title = "Morning Brief" }: TopbarProps) {
+export function Topbar() {
   const { dark } = useTheme()
+  const pathname = usePathname()
+  const title = PAGE_TITLES[pathname] ?? "theformulator.ai"
 
   return (
     <header
