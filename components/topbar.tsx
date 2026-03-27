@@ -9,10 +9,16 @@ export function Topbar({ title = "Morning Brief" }: TopbarProps) {
     <header
       style={{
         height: 56,
+        minHeight: 56,
+        flexShrink: 0,
         backgroundColor: "#FFFFFF",
         borderBottom: "1px solid #E5E7EB",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingLeft: 24,
+        paddingRight: 24,
       }}
-      className="flex items-center justify-between px-6 flex-shrink-0"
     >
       {/* Page title */}
       <span

@@ -184,6 +184,7 @@ export function Sidebar() {
                 fontWeight: 500,
                 letterSpacing: "0.05em",
                 textTransform: "uppercase",
+                whiteSpace: "nowrap",
               }}
             >
               INTELLIGENCE · 27 CREDITS
