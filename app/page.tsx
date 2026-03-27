@@ -1,16 +1,20 @@
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center font-sans">
-      <main className="flex w-full max-w-3xl flex-col items-center gap-8 px-6 py-16 text-center sm:items-start sm:text-left">
-        <div className="flex flex-col gap-4">
-          <h1 className="text-4xl font-bold tracking-tight">
-            Front End Build
-          </h1>
-          <p className="max-w-md text-lg text-muted-foreground">
-            To get started, send a prompt or modify this page directly.
-          </p>
-        </div>
-      </main>
+    <div
+      style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 10,
+        border: '1px solid #E5E7EB',
+        padding: 32,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 200,
+      }}
+    >
+      <p style={{ color: '#6B7280', fontSize: 14 }}>
+        Morning Brief will render here
+      </p>
     </div>
-  );
+  )
 }

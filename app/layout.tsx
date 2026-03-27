@@ -1,32 +1,23 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Sidebar } from '@/components/sidebar'
+import { Topbar } from '@/components/topbar'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+})
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
+  title: 'theformulator.ai',
+  description: 'Professional B2B SaaS formulation platform',
 }
 
 export default function RootLayout({
@@ -36,8 +27,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased">
-        {children}
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
+        <div style={{ display: 'flex', height: '100vh', minWidth: 1280, overflow: 'hidden' }}>
+          <Sidebar />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <Topbar />
+            <main
+              style={{
+                flex: 1,
+                backgroundColor: '#F4F6F9',
+                padding: 24,
+                overflowY: 'auto',
+              }}
+            >
+              {children}
+            </main>
+          </div>
+        </div>
         <Analytics />
       </body>
     </html>
