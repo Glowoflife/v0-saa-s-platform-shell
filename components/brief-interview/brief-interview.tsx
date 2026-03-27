@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useTheme } from "@/components/theme-context"
 
 // ---------------------------------------------------------------------------
@@ -93,16 +93,8 @@ const CARD_STYLES: Record<
 }
 
 // ---------------------------------------------------------------------------
-// Debounce helper
+// Debounce helper — REMOVED, replaced with inline setTimeout
 // ---------------------------------------------------------------------------
-
-function debounce<T extends (...args: Parameters<T>) => void>(fn: T, ms: number): (...args: Parameters<T>) => void {
-  let timer: ReturnType<typeof setTimeout>
-  return (...args: Parameters<T>) => {
-    clearTimeout(timer)
-    timer = setTimeout(() => fn(...args), ms)
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -400,31 +392,31 @@ export function BriefInterview() {
   const [intelligenceCards, setIntelligenceCards] = useState<IntelligenceCard[]>(DEFAULT_CARDS)
   const [isLoadingIntelligence, setIsLoadingIntelligence] = useState(false)
 
-  // Debounced fetch
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const fetchIntelligence = useCallback(
-    debounce(async (briefState: BriefState) => {
+  useEffect(() => {
+    console.log("[v0] Brief updated:", JSON.stringify(brief))
+    const timer = setTimeout(async () => {
       setIsLoadingIntelligence(true)
+      console.log("[v0] Fetching intelligence for:", brief)
       try {
         const res = await fetch("/api/brief-intelligence", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(briefState),
+          body: JSON.stringify(brief),
         })
-        const cards: IntelligenceCard[] = await res.json()
-        if (cards.length > 0) setIntelligenceCards(cards)
-      } catch {
-        // keep existing cards on error
+        console.log("[v0] API response status:", res.status)
+        const cards = await res.json()
+        console.log("[v0] Cards received:", JSON.stringify(cards))
+        if (Array.isArray(cards) && cards.length > 0) {
+          setIntelligenceCards(cards)
+        }
+      } catch (error) {
+        console.log("[v0] API error:", error)
       } finally {
         setIsLoadingIntelligence(false)
       }
-    }, 800),
-    []
-  )
-
-  useEffect(() => {
-    fetchIntelligence(brief)
-  }, [brief, fetchIntelligence])
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [brief])
 
   // Helpers
   const toggle = (field: keyof BriefState, value: string) => {

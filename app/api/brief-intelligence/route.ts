@@ -77,7 +77,7 @@ If brief is sparse (less than 3 fields filled), return a single blue card
 encouraging the formulator to add more context.`
 
   const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
+    model: "claude-opus-4-5",
     max_tokens: 1000,
     messages: [{ role: "user", content: prompt }],
   })
@@ -85,10 +85,14 @@ encouraging the formulator to add more context.`
   const text =
     response.content[0].type === "text" ? response.content[0].text : "[]"
 
+  // Strip any markdown code fences Claude might add
+  const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
+
   try {
-    const cards = JSON.parse(text)
+    const cards = JSON.parse(cleaned)
     return Response.json(cards)
-  } catch {
+  } catch (e) {
+    console.error("[v0] Failed to parse Claude response:", text, e)
     return Response.json([])
   }
 }
