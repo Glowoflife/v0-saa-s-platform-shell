@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "@/components/theme-context"
-import { Download, Bookmark, Share2, Flag, Info, AlertTriangle, Check, ChevronRight } from "lucide-react"
+import { Download, Bookmark, Share2, Flag, Info, AlertTriangle, Check, ChevronDown } from "lucide-react"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -158,6 +158,98 @@ function IconBtn({ icon: Icon, dark }: { icon: React.ElementType; dark: boolean 
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Testing Protocol expandable card
+// ---------------------------------------------------------------------------
+
+function MarketBadge({ label }: { label: string }) {
+  return (
+    <span style={{
+      backgroundColor: "#F4F6F9",
+      border: "1px solid #E5E7EB",
+      borderRadius: 4,
+      fontSize: 10,
+      fontWeight: 500,
+      color: "#6B7280",
+      padding: "1px 6px",
+      whiteSpace: "nowrap",
+    }}>
+      {label}
+    </span>
+  )
+}
+
+function TestRow({ name, market }: { name: string; market: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 6 }}>
+      <span style={{ fontSize: 12, color: "#0D1B2A" }}>{name}</span>
+      <MarketBadge label={market} />
+    </div>
+  )
+}
+
+function TestSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{
+        fontSize: 10,
+        fontWeight: 500,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase" as const,
+        color: "#6B7280",
+        marginBottom: 2,
+      }}>
+        {label}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function TestingProtocolCard({ dark, textSecondary, textPrimary }: { dark: boolean; textSecondary: string; textPrimary: string }) {
+  const [expanded, setExpanded] = useState(false)
+  return (
+    <Card dark={dark} style={{ padding: "16px 20px" }}>
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase", color: "#6B7280" }}>
+          Testing Protocol
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 12, color: textSecondary }}>8 tests recommended · EU + IN</span>
+          <ChevronDown
+            size={14}
+            style={{ color: textSecondary, transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
+          />
+        </div>
+      </button>
+
+      {expanded && (
+        <div style={{ marginTop: 12 }}>
+          <TestSection label="Mandatory Safety">
+            <TestRow name="Safety Assessment (EU Art. 10)" market="EU" />
+            <TestRow name="Challenge Test (ISO 11930)" market="EU + IN" />
+            <TestRow name="Stability: Accelerated + Freeze-Thaw" market="All markets" />
+          </TestSection>
+
+          <TestSection label="Claims Substantiation">
+            <TestRow name="Corneometer CM825 (moisturisation 24h)" market="EU + IN" />
+            <TestRow name="Mexameter MX18 (melanin index, brightening)" market="IN" />
+            <TestRow name="Chromameter CR400 (skin tone)" market="IN" />
+          </TestSection>
+
+          <TestSection label="India (CDSCO)">
+            <TestRow name="Clinical evidence for brightening claim" market="IN" />
+            <TestRow name="Dermatologist-tested documentation" market="IN" />
+          </TestSection>
+        </div>
+      )}
+    </Card>
+  )
+}
 
 export function FormulaOutput() {
   const { dark } = useTheme()
@@ -455,7 +547,7 @@ export function FormulaOutput() {
                 TOTAL
               </span>
               <span style={{ fontSize: 13, fontWeight: 600, color: textPrimary }}>
-                100.00%
+                100.00<span style={{ fontWeight: 400, color: "#6B7280" }}>%</span>
               </span>
             </div>
           </Card>
@@ -676,26 +768,8 @@ export function FormulaOutput() {
             </div>
           </Card>
 
-          {/* Testing Protocol — collapsed */}
-          <Card dark={dark} style={{ padding: "16px 20px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: "#6B7280",
-                }}
-              >
-                Testing Protocol
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 12, color: textSecondary }}>8 tests recommended · EU + IN</span>
-                <ChevronRight size={14} style={{ color: textSecondary }} />
-              </div>
-            </div>
-          </Card>
+          {/* Testing Protocol — expandable */}
+          <TestingProtocolCard dark={dark} textSecondary={textSecondary} textPrimary={textPrimary} />
 
         </div>
       </div>
