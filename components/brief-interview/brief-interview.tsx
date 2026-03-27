@@ -347,12 +347,12 @@ function IntelCard({ card, dark }: { card: IntelligenceCard; dark: boolean }) {
       <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: s.label, marginBottom: 4 }}>
         {card.category}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: dark ? "#F9FAFB" : "#0D1B2A", marginBottom: 4 }}>
+      <p style={{ fontSize: 13, fontWeight: 600, color: dark ? "#F9FAFB" : "#0D1B2A", margin: 0, marginBottom: 6 }}>
         {card.title}
-      </div>
-      <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.6 }}>
+      </p>
+      <p style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>
         {card.body}
-      </div>
+      </p>
     </div>
   )
 }

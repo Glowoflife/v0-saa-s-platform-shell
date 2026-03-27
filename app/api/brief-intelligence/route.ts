@@ -74,7 +74,25 @@ combination. This should feel like insider intelligence, not generic advice.
 Always return valid JSON array only. No markdown, no explanation outside JSON.
 Return 2-4 cards maximum. Prioritise conflicts and warnings over positive signals.
 If brief is sparse (less than 3 fields filled), return a single blue card 
-encouraging the formulator to add more context.`
+encouraging the formulator to add more context.
+
+REQUIRED JSON SCHEMA — every card must have exactly these fields:
+{
+  "type": "red" | "amber" | "blue" | "green",
+  "category": "string (e.g. REGULATORY, FORMULATION, MARKET, INTELLIGENCE)",
+  "title": "string — short headline, max 8 words",
+  "body": "string — 1-2 sentences of actionable detail"
+}
+
+Example output:
+[
+  {
+    "type": "amber",
+    "category": "FORMULATION",
+    "title": "Sulphate-Free System Detected",
+    "body": "SLS/SLES excluded. Recommend Cocamidopropyl Betaine or Sodium Cocoyl Isethionate as primary surfactants."
+  }
+]`
 
   const response = await client.messages.create({
     model: "claude-opus-4-5",
