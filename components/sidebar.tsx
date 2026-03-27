@@ -12,6 +12,7 @@ import {
   TestTube,
   Settings,
 } from "lucide-react"
+import { useTheme } from "@/components/theme-context"
 
 type NavItem = {
   icon: React.ElementType
@@ -35,6 +36,7 @@ const secondaryNav: NavItem[] = [
 ]
 
 export function Sidebar() {
+  const { dark, toggleDark } = useTheme()
   return (
     <aside
       style={{ width: 240, backgroundColor: "#0D1B2A" }}
@@ -198,15 +200,18 @@ export function Sidebar() {
           <span style={{ color: "rgba(255,255,255,0.50)", fontSize: 11 }}>
             Dark mode
           </span>
-          {/* Non-functional toggle UI */}
-          <div
+          <button
+            onClick={toggleDark}
             style={{
               width: 32,
               height: 18,
               borderRadius: 9,
-              backgroundColor: "rgba(255,255,255,0.12)",
+              backgroundColor: dark ? "#D4A843" : "rgba(255,255,255,0.12)",
               position: "relative",
-              cursor: "not-allowed",
+              cursor: "pointer",
+              border: "none",
+              padding: 0,
+              flexShrink: 0,
             }}
           >
             <div
@@ -214,13 +219,14 @@ export function Sidebar() {
                 width: 14,
                 height: 14,
                 borderRadius: "50%",
-                backgroundColor: "rgba(255,255,255,0.40)",
+                backgroundColor: "#FFFFFF",
                 position: "absolute",
                 top: 2,
-                left: 2,
+                left: dark ? 16 : 2,
+                transition: "left 0.15s ease",
               }}
             />
-          </div>
+          </button>
         </div>
 
         {/* CTA Button */}

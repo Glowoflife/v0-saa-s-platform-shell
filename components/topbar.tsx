@@ -1,10 +1,15 @@
+"use client"
+
 import { Zap, Bell } from "lucide-react"
+import { useTheme } from "@/components/theme-context"
 
 interface TopbarProps {
   title?: string
 }
 
 export function Topbar({ title = "Morning Brief" }: TopbarProps) {
+  const { dark } = useTheme()
+
   return (
     <header
       style={{
@@ -13,8 +18,8 @@ export function Topbar({ title = "Morning Brief" }: TopbarProps) {
         left: 240,
         right: 0,
         height: 56,
-        backgroundColor: "#FFFFFF",
-        borderBottom: "1px solid #E5E7EB",
+        backgroundColor: dark ? "#0D1B2A" : "#FFFFFF",
+        borderBottom: `1px solid ${dark ? "#1B3A5C" : "#E5E7EB"}`,
         zIndex: 10,
         display: "flex",
         alignItems: "center",
@@ -23,7 +28,7 @@ export function Topbar({ title = "Morning Brief" }: TopbarProps) {
       }}
     >
       {/* Page title */}
-      <span style={{ color: "#0D1B2A", fontSize: 15, fontWeight: 500 }}>
+      <span style={{ color: dark ? "#F9FAFB" : "#0D1B2A", fontSize: 15, fontWeight: 500 }}>
         {title}
       </span>
 
@@ -32,8 +37,8 @@ export function Topbar({ title = "Morning Brief" }: TopbarProps) {
         {/* Credit counter pill */}
         <div
           style={{
-            backgroundColor: "#F4F6F9",
-            border: "1px solid #E5E7EB",
+            backgroundColor: dark ? "#1B3A5C" : "#F4F6F9",
+            border: `1px solid ${dark ? "#1B3A5C" : "#E5E7EB"}`,
             borderRadius: 9999,
             padding: "6px 12px",
             display: "flex",
@@ -42,14 +47,14 @@ export function Topbar({ title = "Morning Brief" }: TopbarProps) {
           }}
         >
           <Zap size={14} style={{ color: "#D4A843" }} />
-          <span style={{ color: "#0D1B2A", fontSize: 13, fontWeight: 500 }}>
+          <span style={{ color: dark ? "#F9FAFB" : "#0D1B2A", fontSize: 13, fontWeight: 500 }}>
             27 / 40 credits
           </span>
         </div>
 
         {/* Notification bell with red dot */}
         <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Bell size={20} style={{ color: "#6B7280" }} />
+          <Bell size={20} style={{ color: dark ? "#9CA3AF" : "#6B7280" }} />
           <span
             style={{
               position: "absolute",

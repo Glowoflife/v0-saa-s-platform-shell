@@ -1,3 +1,7 @@
+"use client"
+
+import { useTheme } from "@/components/theme-context"
+
 interface FeedItem {
   pill: string
   pillBg: string
@@ -51,6 +55,8 @@ const items: FeedItem[] = [
 ]
 
 export function IntelligenceFeed() {
+  const { dark } = useTheme()
+
   return (
     <div>
       <div
@@ -71,7 +77,10 @@ export function IntelligenceFeed() {
             key={i}
             style={{
               padding: "12px 0",
-              borderBottom: i < items.length - 1 ? "1px solid #F3F4F6" : "none",
+              borderBottom:
+                i < items.length - 1
+                  ? `1px solid ${dark ? "#1B3A5C" : "#F3F4F6"}`
+                  : "none",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -91,7 +100,7 @@ export function IntelligenceFeed() {
               <span
                 style={{
                   fontSize: 12,
-                  color: "#0D1B2A",
+                  color: dark ? "#F9FAFB" : "#0D1B2A",
                   fontWeight: 500,
                   lineHeight: 1.4,
                 }}
@@ -99,7 +108,7 @@ export function IntelligenceFeed() {
                 {item.headline}
               </span>
             </div>
-            <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: dark ? "#9CA3AF" : "#9CA3AF", marginTop: 4 }}>
               {item.source} · {item.time}
             </div>
           </div>

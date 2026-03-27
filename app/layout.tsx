@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { Sidebar } from '@/components/sidebar'
-import { Topbar } from '@/components/topbar'
+import { ThemeProvider } from '@/components/theme-context'
+import { ThemeShell } from '@/components/theme-shell'
 import './globals.css'
 
 const inter = Inter({
@@ -28,22 +28,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
-        <div style={{ display: 'flex', height: '100vh', minWidth: 1280, overflow: 'hidden' }}>
-          <Sidebar />
-          <Topbar />
-          <main
-            style={{
-              flex: 1,
-              backgroundColor: '#F4F6F9',
-              padding: 24,
-              paddingTop: 56 + 24,
-              overflowY: 'auto',
-              marginLeft: 240,
-            }}
-          >
-            {children}
-          </main>
-        </div>
+        <ThemeProvider>
+          <ThemeShell>{children}</ThemeShell>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

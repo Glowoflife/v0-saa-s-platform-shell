@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTheme } from "@/components/theme-context"
 
 type StatusColor = "green" | "amber" | "red"
 
@@ -54,6 +55,7 @@ const projects: Project[] = [
 
 function ProjectCard({ project }: { project: Project }) {
   const [hovered, setHovered] = useState(false)
+  const { dark } = useTheme()
 
   return (
     <div
@@ -61,11 +63,11 @@ function ProjectCard({ project }: { project: Project }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         flex: 1,
-        backgroundColor: "#FFFFFF",
-        border: "1px solid #E5E7EB",
+        backgroundColor: dark ? "#0D1B2A" : "#FFFFFF",
+        border: `1px solid ${dark ? "#1B3A5C" : "#E5E7EB"}`,
         borderRadius: 10,
         padding: 16,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+        boxShadow: dark ? "none" : "0 1px 3px rgba(0,0,0,0.06)",
         cursor: "pointer",
         position: "relative",
       }}
@@ -78,7 +80,7 @@ function ProjectCard({ project }: { project: Project }) {
         }}
       >
         <div
-          style={{ fontSize: 13, fontWeight: 600, color: "#0D1B2A" }}
+          style={{ fontSize: 13, fontWeight: 600, color: dark ? "#F9FAFB" : "#0D1B2A" }}
         >
           {project.title}
         </div>
@@ -88,7 +90,7 @@ function ProjectCard({ project }: { project: Project }) {
           </span>
         )}
       </div>
-      <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+      <div style={{ fontSize: 12, color: dark ? "#9CA3AF" : "#6B7280", marginTop: 2 }}>
         {project.sub}
       </div>
       <div
@@ -114,7 +116,7 @@ function ProjectCard({ project }: { project: Project }) {
                 display: "inline-block",
               }}
             />
-            <span style={{ fontSize: 11, color: "#6B7280" }}>
+            <span style={{ fontSize: 11, color: dark ? "#9CA3AF" : "#6B7280" }}>
               {m.name} · {m.status}
             </span>
           </div>
@@ -125,6 +127,8 @@ function ProjectCard({ project }: { project: Project }) {
 }
 
 export function ActiveProjects() {
+  const { dark } = useTheme()
+
   return (
     <div>
       <div
@@ -133,7 +137,7 @@ export function ActiveProjects() {
           fontWeight: 500,
           letterSpacing: "0.05em",
           textTransform: "uppercase",
-          color: "#6B7280",
+          color: dark ? "#6B7280" : "#6B7280",
           marginBottom: 12,
         }}
       >

@@ -1,3 +1,7 @@
+"use client"
+
+import { useTheme } from "@/components/theme-context"
+
 const alerts = [
   {
     title: "EU Annex II Amendment",
@@ -5,7 +9,9 @@ const alerts = [
     tag: "HIGH",
     borderColor: "#991B1B",
     bgColor: "#FFF5F5",
+    bgColorDark: "#1F0A0A",
     borderCardColor: "#FECACA",
+    borderCardColorDark: "#7F1D1D",
     tagBg: "#991B1B",
   },
   {
@@ -14,12 +20,16 @@ const alerts = [
     tag: "MEDIUM",
     borderColor: "#B45309",
     bgColor: "#FFFBEB",
+    bgColorDark: "#1C1207",
     borderCardColor: "#FDE68A",
+    borderCardColorDark: "#78350F",
     tagBg: "#B45309",
   },
 ]
 
 export function RegulatoryAlerts() {
+  const { dark } = useTheme()
+
   return (
     <div style={{ marginBottom: 24 }}>
       <div
@@ -39,8 +49,8 @@ export function RegulatoryAlerts() {
           <div
             key={a.title}
             style={{
-              backgroundColor: a.bgColor,
-              border: `1px solid ${a.borderCardColor}`,
+              backgroundColor: dark ? a.bgColorDark : a.bgColor,
+              border: `1px solid ${dark ? a.borderCardColorDark : a.borderCardColor}`,
               borderLeft: `3px solid ${a.borderColor}`,
               borderRadius: 8,
               padding: 12,
@@ -54,7 +64,7 @@ export function RegulatoryAlerts() {
                 gap: 8,
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#0D1B2A" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#F9FAFB" : "#0D1B2A" }}>
                 {a.title}
               </span>
               <span
@@ -74,7 +84,7 @@ export function RegulatoryAlerts() {
             <p
               style={{
                 fontSize: 12,
-                color: "#6B7280",
+                color: dark ? "#9CA3AF" : "#6B7280",
                 marginTop: 4,
                 lineHeight: 1.5,
               }}

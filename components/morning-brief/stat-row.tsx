@@ -1,3 +1,7 @@
+"use client"
+
+import { useTheme } from "@/components/theme-context"
+
 const stats = [
   {
     label: "FORMULATIONS",
@@ -30,6 +34,8 @@ const stats = [
 ]
 
 export function StatRow() {
+  const { dark } = useTheme()
+
   return (
     <div
       style={{
@@ -43,11 +49,11 @@ export function StatRow() {
         <div
           key={s.label}
           style={{
-            backgroundColor: "#FFFFFF",
-            border: "1px solid #E5E7EB",
+            backgroundColor: dark ? "#0D1B2A" : "#FFFFFF",
+            border: `1px solid ${dark ? "#1B3A5C" : "#E5E7EB"}`,
             borderRadius: 10,
             padding: 16,
-            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+            boxShadow: dark ? "none" : "0 1px 3px rgba(0,0,0,0.06)",
           }}
         >
           <div
@@ -56,7 +62,7 @@ export function StatRow() {
               fontWeight: 500,
               letterSpacing: "0.05em",
               textTransform: "uppercase",
-              color: "#6B7280",
+              color: dark ? "#6B7280" : "#6B7280",
               marginBottom: 6,
             }}
           >
@@ -66,7 +72,7 @@ export function StatRow() {
             style={{
               fontSize: 28,
               fontWeight: 600,
-              color: s.redNumber ? "#991B1B" : "#0D1B2A",
+              color: s.redNumber ? "#991B1B" : dark ? "#F9FAFB" : "#0D1B2A",
               lineHeight: 1,
               marginBottom: 6,
             }}
@@ -76,7 +82,7 @@ export function StatRow() {
           <div
             style={{
               fontSize: 12,
-              color: s.redSub ? "#991B1B" : "#6B7280",
+              color: s.redSub ? "#991B1B" : dark ? "#9CA3AF" : "#6B7280",
             }}
           >
             {s.sub}
