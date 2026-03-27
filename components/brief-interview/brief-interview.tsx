@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useTheme } from "@/components/theme-context"
 
 // ---------------------------------------------------------------------------
@@ -388,6 +389,7 @@ const COMPLETENESS_HINTS = [
 
 export function BriefInterview() {
   const { dark } = useTheme()
+  const router = useRouter()
   const [brief, setBrief] = useState<BriefState>(DEFAULT_BRIEF)
   const [intelligenceCards, setIntelligenceCards] = useState<IntelligenceCard[]>(DEFAULT_CARDS)
   const [isLoadingIntelligence, setIsLoadingIntelligence] = useState(false)
@@ -596,6 +598,7 @@ export function BriefInterview() {
 
         {/* Generate button */}
         <button
+          onClick={() => router.push("/formula-output")}
           style={{
             backgroundColor: "#D4A843",
             color: "#0D1B2A",
