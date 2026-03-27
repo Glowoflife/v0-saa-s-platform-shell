@@ -8,36 +8,38 @@ export function Topbar({ title = "Morning Brief" }: TopbarProps) {
   return (
     <header
       style={{
+        position: "fixed",
+        top: 0,
+        left: 240,
+        right: 0,
         height: 56,
-        minHeight: 56,
-        flexShrink: 0,
         backgroundColor: "#FFFFFF",
         borderBottom: "1px solid #E5E7EB",
+        zIndex: 10,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingLeft: 24,
-        paddingRight: 24,
+        padding: "0 24px",
       }}
     >
       {/* Page title */}
-      <span
-        style={{ color: "#0D1B2A", fontSize: 15, fontWeight: 500 }}
-      >
+      <span style={{ color: "#0D1B2A", fontSize: 15, fontWeight: 500 }}>
         {title}
       </span>
 
       {/* Right side */}
-      <div className="flex items-center" style={{ gap: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {/* Credit counter pill */}
         <div
           style={{
             backgroundColor: "#F4F6F9",
             border: "1px solid #E5E7EB",
-            borderRadius: 20,
+            borderRadius: 9999,
             padding: "6px 12px",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
           }}
-          className="flex items-center gap-1"
         >
           <Zap size={14} style={{ color: "#D4A843" }} />
           <span style={{ color: "#0D1B2A", fontSize: 13, fontWeight: 500 }}>
@@ -46,18 +48,17 @@ export function Topbar({ title = "Morning Brief" }: TopbarProps) {
         </div>
 
         {/* Notification bell with red dot */}
-        <div className="relative flex items-center justify-center">
+        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Bell size={20} style={{ color: "#6B7280" }} />
           <span
             style={{
               position: "absolute",
-              top: -1,
-              right: -1,
+              top: 0,
+              right: 0,
               width: 8,
               height: 8,
               borderRadius: "50%",
               backgroundColor: "#991B1B",
-              border: "1.5px solid #FFFFFF",
             }}
           />
         </div>
@@ -69,13 +70,12 @@ export function Topbar({ title = "Morning Brief" }: TopbarProps) {
             height: 32,
             borderRadius: "50%",
             backgroundColor: "#1B3A5C",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-          className="flex items-center justify-center"
         >
-          <span
-            className="text-white font-medium"
-            style={{ fontSize: 12 }}
-          >
+          <span style={{ fontSize: 12, fontWeight: 500, color: "#FFFFFF" }}>
             JR
           </span>
         </div>

@@ -30,19 +30,19 @@ export default function RootLayout({
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <div style={{ display: 'flex', height: '100vh', minWidth: 1280, overflow: 'hidden' }}>
           <Sidebar />
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <Topbar />
-            <main
-              style={{
-                flex: 1,
-                backgroundColor: '#F4F6F9',
-                padding: 24,
-                overflowY: 'auto',
-              }}
-            >
-              {children}
-            </main>
-          </div>
+          <Topbar />
+          <main
+            style={{
+              flex: 1,
+              backgroundColor: '#F4F6F9',
+              padding: 24,
+              paddingTop: 56 + 24,
+              overflowY: 'auto',
+              marginLeft: 240,
+            }}
+          >
+            {children}
+          </main>
         </div>
         <Analytics />
       </body>
