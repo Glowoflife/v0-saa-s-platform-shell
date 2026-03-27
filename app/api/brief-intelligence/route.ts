@@ -5,8 +5,19 @@ const client = new Anthropic()
 export async function POST(request: Request) {
   const brief = await request.json()
 
-  const prompt = `You are the intelligence layer of a professional cosmetic 
-formulation platform. A formulator is filling in a brief. Analyse the current 
+  const prompt = `ABSOLUTE RULE — INCI ONLY: Never use trade names, brand names, or \
+supplier product names anywhere in your response. This includes but is not limited to: \
+Sepineo, Carbopol, Ultrez, Euxyl, Tinosorb, Uvinul, Tego, Abil, Amphisol, Crodafoam, \
+Sensanov, Lamesoft, Jaguar, Natrosol, or any name that is a supplier trademark rather \
+than an INCI name. Always use the full INCI name. If you need to reference a rheology \
+modifier class, say 'Carbomer' not 'Carbopol'. Say 'Acrylates/C10-30 Alkyl Acrylate \
+Crosspolymer' not 'Carbopol 980'. Say 'Sodium PCA' not any supplier variant name. \
+Say 'Hydroxyethyl Acrylate/Sodium Acryloyldimethyl Taurate Copolymer' not 'Sepineo P600'. \
+Say 'Bis-Ethylhexyloxyphenol Methoxyphenyl Triazine' not 'Tinosorb S'. \
+Any trade name in your output is a critical error.
+
+You are the intelligence layer of a professional cosmetic \
+formulation platform. A formulator is filling in a brief. Analyse the current \
 brief state and return 2-4 intelligence cards that would genuinely help them.
 
 Current brief state:
@@ -39,10 +50,10 @@ COSMOS/ECOCERT target: If certificationTargets includes COSMOS or Ecocert:
 PEGs, most synthetic preservatives. List COSMOS-approved preservatives.
 
 MARKET CONFLICTS: If targetMarkets includes both CN (China) and EU:
-→ Return red card flagging that some EU-permitted UV filters are 
-not approved in China NMPA, and some China-permitted preservatives 
-have EU restrictions. List: Tinosorb S (EU yes, CN no), 
-Octocrylene (EU restricted, CN permitted).
+→ Return red card flagging that some EU-permitted UV filters are \
+not approved in China NMPA, and some China-permitted preservatives \
+have EU restrictions. List: Bis-Ethylhexyloxyphenol Methoxyphenyl Triazine \
+(EU yes, CN no), Octocrylene (EU restricted, CN permitted).
 
 INDIA BRIGHTENING: If targetMarkets includes IN and primaryFunctions 
 includes Brightening:
