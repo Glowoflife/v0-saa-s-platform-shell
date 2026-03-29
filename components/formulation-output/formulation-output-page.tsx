@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { useTheme } from "@/components/theme-context"
 import { Copy, Share2, RotateCcw, ChevronDown, Check, FileText, Bookmark } from "lucide-react"
 
@@ -23,6 +23,8 @@ interface Ingredient {
   function: string
   safety_score: number | null
   confidence: ConfidenceLevel
+  isSystem?: boolean
+  systemComponents?: { inci: string; pct: string; note: string }[]
 }
 
 interface RegulatoryItem {
@@ -101,8 +103,10 @@ const MOCK_FORMULA: FormulaData = {
         { inci: "Niacinamide", phase: "A", pct: "2.00", function: "Sebum regulation, brightening", safety_score: 1.4, confidence: "high" },
         { inci: "Allantoin", phase: "A", pct: "0.20", function: "Soothing, skin conditioner", safety_score: 1.0, confidence: "high" },
         { inci: "Gluconolactone", phase: "B", pct: "1.00", function: "PHA exfoliant, chelator", safety_score: 1.5, confidence: "medium" },
-        { inci: "Sodium Benzoate", phase: "C", pct: "0.50", function: "Preservative", safety_score: 2.0, confidence: "high" },
-        { inci: "Potassium Sorbate", phase: "C", pct: "0.30", function: "Preservative booster", safety_score: 1.8, confidence: "high" },
+  { inci: "Sodium Benzoate (and) Potassium Sorbate", phase: "C", pct: "0.80", function: "Preservation system", safety_score: 2.0, confidence: "high", isSystem: true, systemComponents: [
+      { inci: "Sodium Benzoate", pct: "0.50", note: "Primary organic acid preservative, effective below pH 5.5" },
+      { inci: "Potassium Sorbate", pct: "0.30", note: "Synergistic booster, broadens spectrum against yeast and mould" },
+    ] },
         { inci: "Citric Acid", phase: "C", pct: "0.20", function: "pH adjuster", safety_score: 1.0, confidence: "high" },
       ],
       regulatoryStatus: [
@@ -126,7 +130,7 @@ const MOCK_FORMULA: FormulaData = {
       safetyOverview: [
         { inci: "Salicylic Acid", score: 3.2, confidence: "high", note: "CIR: safe at ≤2% rinse-off. EU: max 2% with mandatory 'Contains Salicylic Acid' warning label." },
         { inci: "Cocamidopropyl Betaine", score: 2.8, confidence: "medium", note: "CIR: safe at ≤5%. SCCS: noted sensitisation potential at higher concentrations." },
-        { inci: "Sodium Benzoate", score: 2.0, confidence: "high", note: "EU Annex V: max 0.5% leave-on, 2.5% rinse-off. pH-dependent efficacy below 5.5." },
+        { inci: "Sodium Benzoate (and) Potassium Sorbate", score: 2.0, confidence: "high", note: "EU Annex V: Sodium Benzoate max 0.5% leave-on / 2.5% rinse-off, Potassium Sorbate max 1.8% (EU). Combination system effective at pH 4.3–4.5. pH-dependent efficacy — maintain below pH 5.5." },
       ],
     },
     {
@@ -272,6 +276,10 @@ function FormulaTable({ variant, reportLevel, dark }: {
   const textPrimary = dark ? "#F9FAFB" : "#0D1B2A"
   const textSecondary = dark ? "#9CA3AF" : "#6B7280"
   const borderColor = dark ? "#1B3A5C" : "#E5E7EB"
+  const [expandedSystems, setExpandedSystems] = useState<Set<number>>(new Set())
+  const toggleSystem = (i: number) => setExpandedSystems(prev => {
+    const next = new Set(prev); next.has(i) ? next.delete(i) : next.add(i); return next
+  })
 
   return (
     <Section label="Formula" dark={dark}>
@@ -290,42 +298,57 @@ function FormulaTable({ variant, reportLevel, dark }: {
         </thead>
         <tbody>
           {variant.ingredients.map((ing, i) => {
-            const isQS = ing.pct === "q.s."
-            const phaseBg = PHASE_ROW_BG[ing.phase] ?? "transparent"
-            return (
-              <tr key={i} style={{
-                backgroundColor: phaseBg,
-                borderBottom: `1px solid ${borderColor}`,
-              }}>
-                <td style={{ padding: "9px 0", paddingRight: 16 }}>
-                  <span style={{
-                    fontFamily: "var(--font-mono)", fontSize: 12,
-                    color: textPrimary, fontStyle: isQS ? "italic" : "normal",
-                  }}>
-                    {ing.inci}
-                  </span>
-                </td>
-                <td style={{ textAlign: "center", padding: "9px 8px" }}>
-                  <span style={{
-                    backgroundColor: PHASE_COLORS[ing.phase]?.bg ?? "#6B7280",
-                    color: PHASE_COLORS[ing.phase]?.text ?? "#FFF",
-                    fontSize: 10, fontWeight: 600, borderRadius: 4,
-                    padding: "2px 6px",
-                  }}>
-                    {ing.phase}
-                  </span>
-                </td>
-                <td style={{ textAlign: "right", padding: "9px 0", color: isQS ? textSecondary : textPrimary, fontFamily: isQS ? "inherit" : "var(--font-mono)", fontSize: 12 }}>
-                  {isQS ? "q.s." : ing.pct}
-                </td>
-                <td style={{ padding: "9px 16px", fontSize: 12, color: textSecondary }}>{ing.function}</td>
-                {showSafety && <>
-                  <td style={{ textAlign: "center", padding: "9px 8px" }}>{safetyDot(ing.safety_score)}</td>
-                  <td style={{ textAlign: "center", padding: "9px 0" }}>{confidenceDot(ing.confidence)}</td>
-                </>}
-              </tr>
-            )
-          })}
+              const isQS = ing.pct === "q.s."
+              const phaseBg = PHASE_ROW_BG[ing.phase] ?? "transparent"
+              const isExpanded = expandedSystems.has(i)
+              return (
+                <React.Fragment key={i}>
+                  <tr style={{ backgroundColor: phaseBg, borderBottom: `1px solid ${borderColor}` }}>
+                    <td style={{ padding: "9px 0", paddingRight: 16 }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: textPrimary, fontStyle: isQS ? "italic" : "normal" }}>
+                        {ing.inci}
+                      </span>
+                      {ing.isSystem && (
+                        <span style={{ marginLeft: 8, backgroundColor: "#1B3A5C", color: "#FFFFFF", fontSize: 9, fontWeight: 600, borderRadius: 4, padding: "1px 4px", verticalAlign: "middle", letterSpacing: "0.04em" }}>
+                          SYSTEM
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: "center", padding: "9px 8px" }}>
+                      <span style={{ backgroundColor: PHASE_COLORS[ing.phase]?.bg ?? "#6B7280", color: PHASE_COLORS[ing.phase]?.text ?? "#FFF", fontSize: 10, fontWeight: 600, borderRadius: 4, padding: "2px 6px" }}>
+                        {ing.phase}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "right", padding: "9px 0", color: isQS ? textSecondary : textPrimary, fontFamily: isQS ? "inherit" : "var(--font-mono)", fontSize: 12 }}>
+                      {isQS ? "q.s." : ing.pct}
+                    </td>
+                    <td style={{ padding: "9px 16px", fontSize: 12, color: textSecondary }}>{ing.function}</td>
+                    {showSafety && <>
+                      <td style={{ textAlign: "center", padding: "9px 8px" }}>{safetyDot(ing.safety_score)}</td>
+                      <td style={{ textAlign: "center", padding: "9px 0" }}>{confidenceDot(ing.confidence)}</td>
+                    </>}
+                    {ing.isSystem && (
+                      <td style={{ padding: "9px 0 9px 8px", textAlign: "right", width: 24 }}>
+                        <button onClick={() => toggleSystem(i)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: textSecondary }}>
+                          <ChevronDown size={14} style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }} />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                  {ing.isSystem && isExpanded && ing.systemComponents?.map((sub, j) => (
+                    <tr key={`${i}-sub-${j}`} style={{ backgroundColor: phaseBg, borderBottom: `1px solid ${borderColor}` }}>
+                      <td colSpan={showSafety ? 6 : 4} style={{ paddingLeft: 16, paddingTop: 4, paddingBottom: 4, borderTop: `1px solid #E5E7EB` }}>
+                        <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: textSecondary }}>{sub.inci}</span>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: textSecondary }}>{sub.pct}%</span>
+                          <span style={{ fontSize: 11, color: "#9CA3AF" }}>{sub.note}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              )
+            })}
         </tbody>
         <tfoot>
           <tr style={{ borderTop: `2px solid ${borderColor}` }}>
