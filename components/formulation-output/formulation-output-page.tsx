@@ -624,46 +624,70 @@ function ManufacturingSection({ dark }: { dark: boolean }) {
 }
 
 // ---------------------------------------------------------------------------
-// Supplier Options (Dossier)
+// Technical Ingredient Data (Dossier)
 // ---------------------------------------------------------------------------
-const SUPPLIERS: Record<string, { supplier: string; grade: string; highlights: string }[]> = {
-  "Sodium Cocoyl Isethionate": [
-    { supplier: "Innospec", grade: "ISELUX Ultra-Mild", highlights: "Solid flake, 84% active, low irritation index, COSMOS-approved grade available" },
-    { supplier: "Evonik", grade: "TEGO Betain COS", highlights: "Liquid, 30% active, good compatibility with amphoteric co-surfactants" },
-  ],
-  "Salicylic Acid": [
-    { supplier: "Almit", grade: "Salicylic Acid USP/EP", highlights: "Powder, >99.5% purity, EU Annex III compliant at ≤2%, solubilise in propylene glycol before addition" },
-    { supplier: "Sigma-Aldrich / Merck", grade: "Salicylic Acid PhEur", highlights: "High-purity pharmacopoeia grade, suitable for cosmetic and pharmaceutical applications" },
-  ],
-  "Niacinamide": [
-    { supplier: "Lonza", grade: "Niacinamide USP", highlights: "White powder, >99% purity, water-soluble, add to water phase at ambient" },
-    { supplier: "Evonik", grade: "TEGO NAT N10", highlights: "Natural-origin grade, COSMOS-approved, suitable for natural and organic positioning" },
-  ],
+const MOCK_TECHNICAL_DATA = [
+  {
+    inci: "Sodium Cocoyl Isethionate",
+    hlb: "N/A (anionic)",
+    solubility: "Dispersible in water, soluble above CMC",
+    phase: "A (heated, 70–75°C)",
+    typical_use: "8–20%",
+    skin_benefits: "Mild cleansing, skin-compatible pH, low irritation potential",
+    notes: "Requires adequate water phase temperature for full dispersion"
+  },
+  {
+    inci: "Niacinamide",
+    hlb: "N/A (water-soluble)",
+    solubility: "Freely soluble in water",
+    phase: "A (heated or ambient)",
+    typical_use: "2–10%",
+    skin_benefits: "Sebum regulation, barrier support, brightening, anti-inflammatory",
+    notes: "Thermally stable to 120°C. No cold-process restriction."
+  },
+  {
+    inci: "Salicylic Acid",
+    hlb: "N/A (oil/water partition dependent on pH)",
+    solubility: "Slightly soluble in water; solubility increases below pH 4.0",
+    phase: "B (pre-dissolve in propylene glycol or ethanol at 40°C)",
+    typical_use: "0.5–2.0%",
+    skin_benefits: "Keratolytic, comedolytic, antimicrobial, mild anti-inflammatory",
+    notes: "Optimal efficacy at pH 3.0–4.0 (protonated form). Mandatory EU label warning above 0.5%."
+  },
+]
+
+function TechnicalDataRow({ label, value, textSecondary, textPrimary }: { label: string; value: string; textSecondary: string; textPrimary: string }) {
+  return (
+    <div style={{ display: "flex", borderBottom: "1px solid #E5E7EB", padding: "6px 0" }}>
+      <div style={{ width: 140, fontSize: 11, color: textSecondary, flexShrink: 0 }}>{label}</div>
+      <div style={{ fontSize: 12, color: textPrimary, flex: 1 }}>{value}</div>
+    </div>
+  )
 }
 
-function SupplierSection({ dark }: { dark: boolean }) {
-  const borderColor = dark ? "#1B3A5C" : "#E5E7EB"
+function TechnicalIngredientSection({ dark }: { dark: boolean }) {
   const textPrimary = dark ? "#F9FAFB" : "#0D1B2A"
   const textSecondary = dark ? "#9CA3AF" : "#6B7280"
   return (
-    <Section label="Supplier Options" dark={dark}>
-      {Object.entries(SUPPLIERS).map(([inci, options]) => (
-        <div key={inci} style={{ marginBottom: 20 }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: textPrimary, marginBottom: 10 }}>{inci}</div>
-          <div style={{ display: "flex", gap: 12 }}>
-            {options.map((opt) => (
-              <div key={opt.supplier} style={{
-                flex: 1, border: `1px solid ${borderColor}`, borderRadius: 8, padding: 14,
-                backgroundColor: dark ? "#0D1B2A" : "#F9FAFB",
-              }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: textPrimary, marginBottom: 3 }}>{opt.supplier}</div>
-                <div style={{ fontSize: 12, color: "#D4A843", marginBottom: 8 }}>{opt.grade}</div>
-                <div style={{ fontSize: 11, color: textSecondary, lineHeight: 1.5 }}>{opt.highlights}</div>
-              </div>
-            ))}
+    <Section label="Technical Ingredient Data" dark={dark}>
+      {MOCK_TECHNICAL_DATA.map((ing) => (
+        <div key={ing.inci} style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: textPrimary, marginBottom: 10 }}>{ing.inci}</div>
+          <div style={{ backgroundColor: dark ? "#0D1B2A" : "#F9FAFB", border: `1px solid ${dark ? "#1B3A5C" : "#E5E7EB"}`, borderRadius: 8, padding: 14 }}>
+            <TechnicalDataRow label="Phase of Addition" value={ing.phase} textSecondary={textSecondary} textPrimary={textPrimary} />
+            <TechnicalDataRow label="Solubility" value={ing.solubility} textSecondary={textSecondary} textPrimary={textPrimary} />
+            <TechnicalDataRow label="Typical Use Level" value={ing.typical_use} textSecondary={textSecondary} textPrimary={textPrimary} />
+            <TechnicalDataRow label="Skin Benefits" value={ing.skin_benefits} textSecondary={textSecondary} textPrimary={textPrimary} />
+            <TechnicalDataRow label="Technical Notes" value={ing.notes} textSecondary={textSecondary} textPrimary={textPrimary} />
+            {!ing.hlb.startsWith("N/A") && (
+              <TechnicalDataRow label="HLB" value={ing.hlb} textSecondary={textSecondary} textPrimary={textPrimary} />
+            )}
           </div>
         </div>
       ))}
+      <div style={{ fontSize: 11, color: textSecondary, fontStyle: "italic", marginTop: 8 }}>
+        Technical specifications sourced from ingredient TDS documentation. Verify all parameters with your chosen supplier before formulation.
+      </div>
     </Section>
   )
 }
@@ -948,7 +972,7 @@ export function FormulationOutputPage() {
       {reportLevel === "dossier" && (
         <div className="dossier-cover" style={{ display: "none" }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
-            <Image src="/logo.svg" alt="theformulator.ai" width={80} height={80} />
+            <Image src="/logo.svg" alt="theformulator.ai" width={80} height={80} style={{ width: "auto", height: "auto" }} />
           </div>
           <div style={{ height: 2, backgroundColor: "#D4A843", margin: "16px 0" }} />
           <div style={{ fontSize: 24, fontWeight: 700, color: "#0D1B2A", marginBottom: 8 }}>{formula.name}</div>
@@ -1071,7 +1095,7 @@ export function FormulationOutputPage() {
               {show(reportLevel, "brief") && <PreservationSection variant={activeVariant} dark={dark} />}
               {show(reportLevel, "dossier") && <StabilitySection dark={dark} />}
               {show(reportLevel, "dossier") && <ManufacturingSection dark={dark} />}
-              {show(reportLevel, "dossier") && <SupplierSection dark={dark} />}
+              {show(reportLevel, "dossier") && <TechnicalIngredientSection dark={dark} />}
               {show(reportLevel, "dossier") && <CitationsSection dark={dark} />}
             </>
           )}

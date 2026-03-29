@@ -50,7 +50,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5">
-        <Image src="/logo.svg" alt="theformulator.ai" width={36} height={36} className="flex-shrink-0" />
+        <Image src="/logo.svg" alt="theformulator.ai" width={36} height={36} className="flex-shrink-0" style={{ width: "auto", height: "auto" }} />
         <span className="text-white font-medium text-sm">theformulator.ai</span>
       </div>
 
