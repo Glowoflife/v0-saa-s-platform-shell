@@ -49,8 +49,8 @@ export function Sidebar() {
       className="flex h-screen flex-col flex-shrink-0"
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5">
-        <Image src="/logo.svg" alt="theformulator.ai" width={36} height={36} className="flex-shrink-0" style={{ width: "auto", height: "auto" }} />
+      <div className="flex items-center gap-3 px-5" style={{ height: 56 }}>
+        <Image src="/logo.svg" alt="theformulator.ai" width={36} height={36} className="flex-shrink-0" style={{ width: 36, height: 36, objectFit: "contain" }} />
         <span className="text-white font-medium text-sm">theformulator.ai</span>
       </div>
 
