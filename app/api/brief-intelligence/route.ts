@@ -2,126 +2,173 @@ import Anthropic from "@anthropic-ai/sdk"
 
 const client = new Anthropic()
 
+// Mock surfactant data — mirrors the shape of the real FastAPI
+// /surfactants?sulphate_free=true response. Swap for real fetch when
+// FastAPI is wired.
+const MOCK_SULPHATE_FREE_SURFACTANTS = [
+  { inci_name: "Sodium Cocoyl Isethionate", mildness_index: 92, foam_profile: "Rich", zn_score: 1.2 },
+  { inci_name: "Disodium Cocoyl Glutamate", mildness_index: 89, foam_profile: "Moderate", zn_score: 0.9 },
+  { inci_name: "Sodium Lauryl Glucose Carboxylate", mildness_index: 88, foam_profile: "Moderate", zn_score: 1.1 },
+  { inci_name: "Coco-Glucoside", mildness_index: 85, foam_profile: "Low", zn_score: 0.8 },
+  { inci_name: "Cocamidopropyl Betaine", mildness_index: 81, foam_profile: "Stable", zn_score: 2.1 },
+]
+
+function formatSurfactantsForPrompt(surfactants: typeof MOCK_SULPHATE_FREE_SURFACTANTS): string {
+  return surfactants
+    .map(s => `  • ${s.inci_name} — mildness ${s.mildness_index}/100, foam: ${s.foam_profile}, ZN score: ${s.zn_score}`)
+    .join("\n")
+}
+
 export async function POST(request: Request) {
-  const brief = await request.json()
+  const body = await request.json()
 
-  const prompt = `ABSOLUTE RULE — INCI ONLY: Never use trade names, brand names, or \
-supplier product names anywhere in your response. This includes but is not limited to: \
-Sepineo, Carbopol, Ultrez, Euxyl, Tinosorb, Uvinul, Tego, Abil, Amphisol, Crodafoam, \
-Sensanov, Lamesoft, Jaguar, Natrosol, or any name that is a supplier trademark rather \
-than an INCI name. Always use the full INCI name. If you need to reference a rheology \
-modifier class, say 'Carbomer' not 'Carbopol'. Say 'Acrylates/C10-30 Alkyl Acrylate \
-Crosspolymer' not 'Carbopol 980'. Say 'Sodium PCA' not any supplier variant name. \
-Say 'Hydroxyethyl Acrylate/Sodium Acryloyldimethyl Taurate Copolymer' not 'Sepineo P600'. \
-Say 'Bis-Ethylhexyloxyphenol Methoxyphenyl Triazine' not 'Tinosorb S'. \
-Any trade name in your output is a critical error.
+  // ── PARSE MODE ────────────────────────────────────────────────────
+  if (body.mode === "parse") {
+    const { rawText } = body
 
-You are the intelligence layer of a professional cosmetic \
-formulation platform. A formulator is filling in a brief. Analyse the current \
-brief state and return 2-4 intelligence cards that would genuinely help them.
+    const prompt = `You are a cosmetic formulation brief parser. A formulator has pasted a free-text brief. Extract structured data and return a JSON object mapping to BriefState fields.
 
-Current brief state:
+Raw brief:
+"""
+${rawText}
+"""
+
+Return ONLY a valid JSON object with fields you can confidently extract. Omit fields you cannot determine. Do not guess.
+
+Fields to extract:
+{
+  "productType": string,          // "Serum" | "Toner" | "Cleanser" | "Moisturiser" | "Shampoo" | "Conditioner" | "Body Wash" | "Hand Cream" | "Lip Balm" | "Hair Oil" | "SPF"
+  "format": string,               // "Gel" | "Emulsion" | "Oil" | "Balm" | "Foam" | "Powder" | "Stick" | "Wax" | "Paste"
+  "texture": string,              // "Lightweight" | "Rich" | "Watery" | "Silky"
+  "primaryFunctions": string[],   // from: ["Hydration","Brightening","Anti-Ageing","Acne Control","SPF Protection","Barrier Repair","Soothing","Firming"]
+  "targetSkinTypes": string[],    // from: ["All Skin","Dry","Oily","Sensitive","Combination","Mature"]
+  "targetMarkets": string[],      // from: ["UK","EU","USA","Australia","China","Japan","India","Korea","Canada","Brazil","ASEAN","Malaysia","Singapore"]
+  "claims": string[],             // from: ["Dermatologist Tested","Hypoallergenic","Non-Comedogenic","Clinically Proven","Fragrance-Free","Cruelty-Free","Vegan"]
+  "targetRetailers": string[],    // from: ["Sephora Clean","Credo Clean Standard","Ulta Conscious Beauty","Whole Foods Premium Body Care"]
+  "regulatoryPriority": string,   // "Strictest market governs" | "Per-market variants" | "EU baseline"
+  "mustInclude": string[],        // INCI or ingredient names explicitly requested
+  "mustExclude": string[],        // INCI or ingredient names explicitly excluded
+  "preferNatural": boolean,       // true if natural/clean/green/COSMOS language present
+  "fragranceApproach": string,    // "Fragrance-free" | "Essential oils only" | "Nature-identical" | "No preference"
+  "colorantApproach": string,     // "No colorants" | "Natural only" | "No preference"
+  "budgetTier": string,           // "Entry" | "Mid" | "Premium" | "Ultra-premium"
+  "viscosityTarget": string,      // "Water-thin" | "Light lotion" | "Medium cream" | "Thick balm" | "Paste"
+  "preservationStrategy": string, // "Conventional" | "Natural/hurdle" | "Self-preserving" | "Formulator will specify"
+  "packagingType": string,        // "Jar" | "Pump" | "Tube" | "Dropper" | "Airless" | "Spray" | "Sachet"
+  "shelfLifeMonths": number,      // 12 | 18 | 24 | 36
+  "batchSize": string,            // "Lab (1–5 kg)" | "Pilot (50–200 kg)" | "Production (500+ kg)"
+  "referenceProducts": string[],  // brand/product names mentioned as references or competitors
+  "pricePositioning": string,     // "Below market" | "At market" | "Premium" | "Ultra-premium"
+  "differentiators": string[],    // from: ["Novel actives","Clean label","Clinical claims","Texture innovation","Multi-functional","Speed to market"]
+  "targetLaunchDate": string,     // "ASAP" | "3 months" | "6 months" | "12+ months"
+  "phMin": number,                // e.g. 4.5
+  "phMax": number                 // e.g. 5.5
+}
+
+Return ONLY the JSON object. No markdown, no backticks, no explanation.`
+
+    const response = await client.messages.create({
+      model: "claude-opus-4-5",
+      max_tokens: 1000,
+      messages: [{ role: "user", content: prompt }],
+    })
+
+    const text = response.content[0].type === "text" ? response.content[0].text : "{}"
+    try {
+      const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
+      if (parsed.phMin !== undefined || parsed.phMax !== undefined) {
+        parsed.phRange = { min: parsed.phMin ?? 0, max: parsed.phMax ?? 14 }
+        delete parsed.phMin
+        delete parsed.phMax
+      }
+      return Response.json({ success: true, fields: parsed })
+    } catch {
+      return Response.json({ success: false, fields: {} })
+    }
+  }
+
+  // ── INTELLIGENCE MODE (default) ───────────────────────────────────
+  const brief = body
+
+  // Detect sulphate-free signal from mustExclude or freeTextConstraints
+  const sulphateTerms = ["sls", "sles", "sulphate", "sulfate", "sodium lauryl", "sodium laureth"]
+  const isSulphateFree =
+    brief.mustExclude?.some((i: string) =>
+      sulphateTerms.some(t => i.toLowerCase().includes(t))
+    ) ||
+    sulphateTerms.some(t => (brief.freeTextConstraints ?? "").toLowerCase().includes(t))
+
+  const surfactantBlock = isSulphateFree
+    ? `\nSULPHATE-FREE SURFACTANT DATA (from platform database, ranked by mildness):
+${formatSurfactantsForPrompt(MOCK_SULPHATE_FREE_SURFACTANTS)}
+Use these exact INCI names and scores when recommending sulphate-free alternatives. Do not suggest any surfactant not in this list.\n`
+    : ""
+
+  const prompt = `You are the intelligence layer of a professional cosmetic formulation platform. Analyse the current brief and return 2–4 intelligence cards.
+
+Current brief:
 ${JSON.stringify(brief, null, 2)}
+${surfactantBlock}
+STRICT OUTPUT FORMAT — each card body must follow this structure:
+- Maximum 2 sentences total. Ideally 1.
+- Sentence 1: The signal or conflict — stated as a direct fact. No preamble.
+- Sentence 2 (optional): The fix or implication — one concrete action or number.
+- NO hedging phrases: never use "may", "might", "could potentially", "it is worth noting", "please be aware"
+- NO intros: never start with "This", "Note that", "Please note", "Keep in mind"
+- Write as a senior chemist would annotate a lab notebook — blunt and precise
+- INCI names only — no trade names
+
+BAD example (too long):
+"When targeting the sulphate-free market, it is worth noting that SLS and SLES are excluded from your brief. You may want to consider alternatives such as Sodium Cocoyl Isethionate or Disodium Cocoyl Glutamate, which offer good mildness profiles and are widely used in sulphate-free systems."
+
+GOOD example (correct):
+"SLS/SLES excluded. Primary alternatives: Sodium Cocoyl Isethionate (mildness 92/100) or Disodium Cocoyl Glutamate (89/100) — both pH-stable 4.5–6.5."
 
 INTELLIGENCE RULES — apply all that are relevant:
 
-SULPHATE-FREE detection: If mustExclude contains any of [SLS, SLES, 
-"sodium lauryl sulphate", "sodium laureth sulphate", "sulphate", "sulfate"] 
-OR freeTextConstraints mentions sulphate/sulfate free:
-→ Return amber card: "Sulphate-Free System" warning that SLS/SLES are 
-excluded, recommend Cocamidopropyl Betaine, Sodium Cocoyl Isethionate, 
-Disodium Cocoyl Glutamate, or Sodium Lauryl Glucose Carboxylate as 
-alternatives. Note which have COSMOS approval if COSMOS is a target.
+SULPHATE-FREE: If isSulphateFree detected → amber card "Sulphate-Free System". Use ONLY surfactants from SULPHATE-FREE SURFACTANT DATA above. Include mildness + ZN scores.
 
-SILICONE-FREE detection: If mustExclude mentions silicone, dimethicone, 
-cyclomethicone, or freeTextConstraints mentions silicone free:
-→ Return amber card: "Silicone-Free Alternatives" — recommend 
-C12-16 Alcohols, Isodecyl Neopentanoate, Hemisqualane, or 
-Polyglyceryl esters for slip and skin feel. Flag that texture 
-targets may need adjustment.
+SILICONE-FREE: If mustExclude mentions silicone/dimethicone/cyclomethicone → amber card. Alternatives: C12-16 Alcohols, Isodecyl Neopentanoate, Hemisqualane.
 
-PARABEN-FREE / PRESERVATIVE: If mustExclude mentions parabens:
-→ Return blue card recommending Phenoxyethanol/Ethylhexylglycerin, 
-Sodium Benzoate/Potassium Sorbate, or Ethylhexylglycerin/Caprylyl 
-Glycol blends. Note pH dependency for Sodium Benzoate systems.
+PRESERVATIVE pH CONFLICT: If preservationStrategy "Natural/hurdle" AND phRange.max > 5.5 → red card. Sodium Benzoate/Potassium Sorbate effective only below pH 5.5.
 
-COSMOS/ECOCERT target: If certificationTargets includes COSMOS or Ecocert:
-→ Return amber card listing what is auto-excluded: synthetic silicones, 
-PEGs, most synthetic preservatives. List COSMOS-approved preservatives.
+PACKAGING + VISCOSITY MISMATCH: If packagingType "Dropper" and viscosityTarget not "Water-thin" → amber card.
 
-MARKET CONFLICTS: If targetMarkets includes both CN (China) and EU:
-→ Return red card flagging that some EU-permitted UV filters are \
-not approved in China NMPA, and some China-permitted preservatives \
-have EU restrictions. List: Bis-Ethylhexyloxyphenol Methoxyphenyl Triazine \
-(EU yes, CN no), Octocrylene (EU restricted, CN permitted).
+RETAILER RESTRICTIONS: If targetRetailers includes "Sephora Clean" → amber card. 87 prohibited ingredients including Phenoxyethanol >1%.
 
-INDIA BRIGHTENING: If targetMarkets includes IN and primaryFunctions 
-includes Brightening:
-→ Return amber card: CDSCO requires clinical substantiation evidence 
-for brightening claims. Arbutin is not explicitly listed in India 
-standards — use Niacinamide or Vitamin C derivatives as safer primary 
-actives for IN market.
+NATURAL PREFERENCE: If preferNatural true → green card. Natural-origin alternatives prioritised.
 
-JAPAN QUASI-DRUG: If targetMarkets includes JP and 
-(claims includes whitening OR SPF claims present):
-→ Return red card: Japan MHLW quasi-drug pathway required for 
-whitening/SPF claims. Separate registration from standard cosmetics. 
-Only MHLW-approved actives at specified concentrations permitted: 
-Arbutin ≤7%, Niacinamide ≤3%, Vitamin C derivatives per monograph.
+MARKET CONFLICTS — EU + China: If both in targetMarkets → red card. Bis-Ethylhexyloxyphenol Methoxyphenyl Triazine EU-approved, not NMPA-approved.
 
-GEL + OIL-SOLUBLE ACTIVES: If format is Gel and mustInclude contains 
-oil-soluble ingredients (Bakuchiol, Retinol, Vitamin E, any oil):
-→ Return amber card: gel vehicles are water-continuous and cannot 
-solubilise oil-soluble actives without a solubiliser. Recommend 
-switching to serum emulsion or adding Polysorbate 20/Caprylyl 
-Capryl Glucoside as solubiliser.
+INDIA BRIGHTENING: If targetMarkets includes India + primaryFunctions includes Brightening → amber card. CDSCO requires clinical substantiation. Use Niacinamide or Vitamin C derivatives.
 
-MARKET CORPUS INTELLIGENCE: If targetMarkets and primaryFunctions are set:
-→ Return one green card with realistic co-occurrence data for that 
-combination from the platform's 550,000+ product corpus. Use real 
-percentages and ingredient patterns appropriate to the market/function 
-combination. This should feel like insider intelligence, not generic advice.
+JAPAN QUASI-DRUG: If targetMarkets includes Japan + SPF/whitening claims → red card. MHLW quasi-drug pathway required.
 
-Always return valid JSON array only. No markdown, no explanation outside JSON.
-Return 2-4 cards maximum. Prioritise conflicts and warnings over positive signals.
-If brief is sparse (less than 3 fields filled), return a single blue card 
-encouraging the formulator to add more context.
+GEL + OIL-SOLUBLE ACTIVES: If format Gel + mustInclude has Retinol/Bakuchiol/oils → amber card. Add solubiliser or switch to emulsion.
 
-REQUIRED JSON SCHEMA — every card must have exactly these fields:
-{
-  "type": "red" | "amber" | "blue" | "green",
-  "category": "string (e.g. REGULATORY, FORMULATION, MARKET, INTELLIGENCE)",
-  "title": "string — short headline, max 8 words",
-  "body": "string — 1-2 sentences of actionable detail"
-}
+COMPETITIVE INTELLIGENCE: If referenceProducts set → green card with positioning intel.
 
-Example output:
-[
-  {
-    "type": "amber",
-    "category": "FORMULATION",
-    "title": "Sulphate-Free System Detected",
-    "body": "SLS/SLES excluded. Recommend Cocamidopropyl Betaine or Sodium Cocoyl Isethionate as primary surfactants."
-  }
-]`
+MARKET CORPUS: If targetMarkets + primaryFunctions set → green card with co-occurrence % from 561k product corpus.
+
+ABSOLUTE RULES:
+- INCI names only. No trade names.
+- 2–4 cards max. Prioritise conflicts over positive signals.
+- If brief <3 fields filled → single blue card encouraging more context.
+- Return ONLY valid JSON array. No markdown.
+
+Card shape: { "type": "amber"|"green"|"blue"|"red", "category": string, "title": string, "body": string }`
 
   const response = await client.messages.create({
-    model: "claude-opus-4-5",
-    max_tokens: 1000,
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 600,
     messages: [{ role: "user", content: prompt }],
   })
 
-  const text =
-    response.content[0].type === "text" ? response.content[0].text : "[]"
-
-  // Strip any markdown code fences Claude might add
-  const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim()
-
+  const text = response.content[0].type === "text" ? response.content[0].text : "[]"
   try {
-    const cards = JSON.parse(cleaned)
+    const cards = JSON.parse(text.replace(/```json|```/g, "").trim())
     return Response.json(cards)
-  } catch (e) {
-    console.error("[v0] Failed to parse Claude response:", text, e)
+  } catch {
     return Response.json([])
   }
 }

@@ -2,28 +2,25 @@
 
 import { useTheme } from "@/components/theme-context"
 
-const alerts = [
+interface Alert {
+  level: "action" | "monitor"
+  heading: string
+  body: string
+  linkText: string
+}
+
+const alerts: Alert[] = [
   {
-    title: "EU Annex II Amendment",
-    body: "Butylphenyl Methylpropional restricted. Check 3 saved formulations.",
-    tag: "HIGH",
-    borderColor: "#991B1B",
-    bgColor: "#FFF5F5",
-    bgColorDark: "#1F0A0A",
-    borderCardColor: "#FECACA",
-    borderCardColorDark: "#7F1D1D",
-    tagBg: "#991B1B",
+    level: "action",
+    heading: "Kojic Acid — EU limit drops to 1%",
+    body: "Affects Brightening Serum — Phase 1. Current draft uses 1.5%.",
+    linkText: "Review formulation →",
   },
   {
-    title: "CDSCO India Update",
-    body: "New clinical evidence requirements for brightening claims effective May 2026.",
-    tag: "MEDIUM",
-    borderColor: "#B45309",
-    bgColor: "#FFFBEB",
-    bgColorDark: "#1C1207",
-    borderCardColor: "#FDE68A",
-    borderCardColorDark: "#78350F",
-    tagBg: "#B45309",
+    level: "monitor",
+    heading: "TiO₂ nano — spray format ban",
+    body: "No active projects affected. Future SPF sprays will need reformulation.",
+    linkText: "Read update →",
   },
 ]
 
@@ -31,81 +28,95 @@ export function RegulatoryAlerts() {
   const { dark } = useTheme()
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div
+      style={{
+        backgroundColor: dark ? "#111827" : "#FFFFFF",
+        border: `1px solid ${dark ? "#7F1D1D" : "#FECACA"}`,
+        borderRadius: 10,
+        padding: "18px 20px",
+      }}
+    >
       <div
         style={{
           fontSize: 11,
           fontWeight: 500,
-          letterSpacing: "0.05em",
+          letterSpacing: "0.08em",
           textTransform: "uppercase",
-          color: "#6B7280",
+          color: "#991B1B",
           marginBottom: 12,
         }}
       >
-        Regulatory Alerts
+        REGULATORY ALERTS
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {alerts.map((a) => (
+
+      {alerts.map((alert, i) => (
+        <div
+          key={i}
+          style={{
+            paddingTop: i > 0 ? 12 : 0,
+            paddingBottom: i < alerts.length - 1 ? 12 : 0,
+            borderTop: i > 0 ? `1px solid ${dark ? "#1F2937" : "#F3F4F6"}` : "none",
+          }}
+        >
+          {/* Level indicator */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                backgroundColor: alert.level === "action" ? "#EF4444" : "#F59E0B",
+              }}
+            />
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                color: alert.level === "action" ? "#991B1B" : "#B45309",
+              }}
+            >
+              {alert.level === "action" ? "Action required" : "Monitor"}
+            </span>
+          </div>
+
+          {/* Heading */}
           <div
-            key={a.title}
             style={{
-              backgroundColor: dark ? a.bgColorDark : a.bgColor,
-              border: `1px solid ${dark ? a.borderCardColorDark : a.borderCardColor}`,
-              borderLeft: `3px solid ${a.borderColor}`,
-              borderRadius: 8,
-              padding: 12,
+              fontSize: 13,
+              fontWeight: 600,
+              color: dark ? "#F9FAFB" : "#0D1B2A",
+              marginTop: 6,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 8,
-              }}
-            >
-              <span style={{ fontSize: 13, fontWeight: 600, color: dark ? "#F9FAFB" : "#0D1B2A" }}>
-                {a.title}
-              </span>
-              <span
-                style={{
-                  backgroundColor: a.tagBg,
-                  color: "#FFFFFF",
-                  fontSize: 10,
-                  fontWeight: 600,
-                  borderRadius: 4,
-                  padding: "2px 6px",
-                  flexShrink: 0,
-                }}
-              >
-                {a.tag}
-              </span>
-            </div>
-            <p
-              style={{
-                fontSize: 12,
-                color: dark ? "#9CA3AF" : "#6B7280",
-                marginTop: 4,
-                lineHeight: 1.5,
-              }}
-            >
-              {a.body}
-            </p>
+            {alert.heading}
           </div>
-        ))}
-      </div>
-      <a
-        href="#"
-        style={{
-          display: "block",
-          marginTop: 8,
-          fontSize: 12,
-          color: "#D4A843",
-          textDecoration: "none",
-        }}
-      >
-        View all regulatory alerts →
-      </a>
+
+          {/* Body */}
+          <div
+            style={{
+              fontSize: 12,
+              color: "#6B7280",
+              marginTop: 4,
+            }}
+          >
+            {alert.body}
+          </div>
+
+          {/* Link */}
+          <a
+            href="#"
+            style={{
+              display: "inline-block",
+              fontSize: 11,
+              color: "#D4A843",
+              marginTop: 6,
+              textDecoration: "none",
+            }}
+          >
+            {alert.linkText}
+          </a>
+        </div>
+      ))}
     </div>
   )
 }
