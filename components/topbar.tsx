@@ -9,6 +9,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/new-formulation": "New Formulation",
   "/formula-output": "Formula Output",
   "/formulations": "My Formulations",
+  "/formulations/frm_001": "Formulation",
   "/partner": "Formulation Partner",
   "/regulatory": "Regulatory Database",
   "/market": "Market Intelligence",
