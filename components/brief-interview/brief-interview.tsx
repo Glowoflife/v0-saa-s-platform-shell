@@ -625,6 +625,91 @@ export function BriefInterview() {
   const [selectedCoSurf, setSelectedCoSurf] = useState<string[]>([])
   const [selectedAlts, setSelectedAlts] = useState<string[]>([])
 
+  // Generate state
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState<string | null>(null)
+
+  const handleGenerate = async () => {
+    setIsGenerating(true)
+    setGenerateError(null)
+
+    try {
+      const token = localStorage.getItem("tf_access_token")
+      if (!token) {
+        window.location.href = "https://theformulator.ai"
+        return
+      }
+
+      const rawBriefText = [
+        brief.productType && `Product type: ${brief.productType}`,
+        brief.format && `Format: ${brief.format}`,
+        brief.texture && `Texture: ${brief.texture}`,
+        brief.primaryFunctions.length > 0 && `Primary functions: ${brief.primaryFunctions.join(", ")}`,
+        brief.targetSkinTypes.length > 0 && `Target skin types: ${brief.targetSkinTypes.join(", ")}`,
+        brief.targetMarkets.length > 0 && `Target markets: ${brief.targetMarkets.join(", ")}`,
+        brief.claims.length > 0 && `Claims: ${brief.claims.join(", ")}`,
+        brief.targetRetailers.length > 0 && `Target retailers: ${brief.targetRetailers.join(", ")}`,
+        brief.regulatoryPriority && `Regulatory priority: ${brief.regulatoryPriority}`,
+        brief.mustInclude.length > 0 && `Must include: ${brief.mustInclude.join(", ")}`,
+        brief.mustExclude.length > 0 && `Must exclude: ${brief.mustExclude.join(", ")}`,
+        brief.preferNatural && `Natural origin preference: yes`,
+        brief.fragranceApproach && `Fragrance approach: ${brief.fragranceApproach}`,
+        brief.colorantApproach && `Colorant approach: ${brief.colorantApproach}`,
+        brief.budgetTier && `Budget tier: ${brief.budgetTier}`,
+        brief.phRange && `pH range: ${brief.phRange.min}-${brief.phRange.max}`,
+        brief.viscosityTarget && `Viscosity target: ${brief.viscosityTarget}`,
+        brief.preservationStrategy && `Preservation strategy: ${brief.preservationStrategy}`,
+        brief.packagingType && `Packaging type: ${brief.packagingType}`,
+        brief.shelfLifeMonths && `Shelf life: ${brief.shelfLifeMonths} months`,
+        brief.batchSize && `Batch size: ${brief.batchSize}`,
+        brief.freeTextConstraints && `Additional constraints: ${brief.freeTextConstraints}`,
+        brief.referenceProducts.length > 0 && `Reference products: ${brief.referenceProducts.join(", ")}`,
+        brief.pricePositioning && `Price positioning: ${brief.pricePositioning}`,
+        brief.differentiators.length > 0 && `Key differentiators: ${brief.differentiators.join(", ")}`,
+        brief.targetLaunchDate && `Target launch: ${brief.targetLaunchDate}`,
+        selectedPreservative && `Selected preservative: ${selectedPreservative}`,
+        selectedSurf && `Selected surfactant: ${selectedSurf}`,
+      ].filter(Boolean).join("\n")
+
+      const completeness = calcCompleteness(brief)
+      const reportLevel = completeness >= 80 ? "brief" : "quick"
+
+      const response = await fetch("https://api.theformulator.ai/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ raw_brief: rawBriefText, report_level: reportLevel }),
+      })
+
+      if (response.status === 401) {
+        localStorage.removeItem("tf_access_token")
+        window.location.href = "https://theformulator.ai"
+        return
+      }
+
+      if (response.status === 402) {
+        setGenerateError("Insufficient credits. Please contact the team to top up.")
+        return
+      }
+
+      if (!response.ok) {
+        const err = await response.json()
+        setGenerateError(err.detail || "Generation failed. Please try again.")
+        return
+      }
+
+      const data = await response.json()
+      localStorage.setItem("tf_last_formulation", JSON.stringify(data))
+      window.location.href = `/formulations/${data.formulation_id}`
+    } catch {
+      setGenerateError("Connection error. Please check your connection and try again.")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
   useEffect(() => {
     const timer = setTimeout(async () => {
       setIsLoadingIntelligence(true)
@@ -878,15 +963,44 @@ export function BriefInterview() {
         </SectionCard>
 
         {/* Generate button */}
-        <button
-          onClick={() => router.push("/formula-output")}
-          style={{
-            backgroundColor: "#D4A843", color: "#0D1B2A", fontWeight: 600, fontSize: 14,
-            height: 44, borderRadius: 8, width: "100%", border: "none", cursor: "pointer",
-          }}
-        >
-          Generate Formulation →
-        </button>
+        <div style={{ marginTop: 32 }}>
+          {generateError && (
+            <div style={{
+              marginBottom: 16, padding: 12, borderRadius: 8,
+              border: "1px solid #FECACA", backgroundColor: "#FEF2F2",
+              color: "#B91C1C", fontSize: 13, lineHeight: 1.5,
+            }}>
+              {generateError}
+            </div>
+          )}
+          <button
+            onClick={handleGenerate}
+            disabled={isGenerating || calcCompleteness(brief) < 20}
+            style={{
+              width: "100%", height: 48, borderRadius: 8, border: "none",
+              fontWeight: 600, fontSize: 14, cursor: isGenerating || calcCompleteness(brief) < 20 ? "not-allowed" : "pointer",
+              backgroundColor: isGenerating || calcCompleteness(brief) < 20 ? "#E5E7EB" : "#D4A843",
+              color: isGenerating || calcCompleteness(brief) < 20 ? "#9CA3AF" : "#0D1B2A",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            {isGenerating ? (
+              <>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 0.8s linear infinite" }}>
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                Generating formulation... (45–60 seconds)
+              </>
+            ) : (
+              "Generate Formulation →"
+            )}
+          </button>
+          {calcCompleteness(brief) < 20 && (
+            <p style={{ textAlign: "center", fontSize: 12, color: "#9CA3AF", marginTop: 8 }}>
+              Complete at least 20% of the brief to generate
+            </p>
+          )}
+        </div>
       </div>
 
       {/* ------------------------------------------------------------------ */}
