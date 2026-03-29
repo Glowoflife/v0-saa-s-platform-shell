@@ -139,14 +139,26 @@ const PRESERVATIVE_BOOSTERS = [
 ]
 
 // Surfactant system mock data
-const SURFACTANT_OPTIONS = [
-  { inci: "Sodium Cocoyl Isethionate", mildness: 9, foam: "Rich, creamy" },
-  { inci: "Disodium Laureth Sulfosuccinate", mildness: 8, foam: "Moderate, stable" },
-  { inci: "Cocamidopropyl Betaine", mildness: 7, foam: "Light, boosting" },
+const SULPHATE_FREE_SURFACTANTS_PRIMARY = [
+  { inci_name: "Sodium Cocoyl Isethionate", mildness: "9/10", foam: "Rich, creamy", note: "Best primary for sensitive/acne-prone skin" },
+  { inci_name: "Disodium Cocoyl Glutamate", mildness: "9/10", foam: "Moderate", note: "Lowest irritation potential, amino acid-derived" },
+  { inci_name: "Sodium Lauryl Glucose Carboxylate", mildness: "8/10", foam: "Moderate", note: "APG hybrid, good skin tolerance" },
 ]
-const COSURFACTANT_OPTIONS = [
-  { inci: "Lauryl Glucoside", note: "APG, gentle, cold process" },
-  { inci: "Sodium Lauroyl Sarcosinate", note: "Mild, foam enhancer" },
+
+const SULPHATE_FREE_SURFACTANTS_COSURFACTANT = [
+  { inci_name: "Cocamidopropyl Betaine", note: "Stable foam, use at 2–4% to boost foam and viscosity" },
+  { inci_name: "Coco-Glucoside", note: "APG, very gentle, cold-processable" },
+]
+
+const DEFAULT_SURFACTANTS_PRIMARY = [
+  { inci_name: "Sodium Cocoyl Isethionate", mildness: "9/10", foam: "Rich, creamy", note: "Mild, sulphate-free primary" },
+  { inci_name: "Sodium Laureth Sulfate", mildness: "6/10", foam: "Rich, stable", note: "Standard primary, cost-effective" },
+  { inci_name: "Sodium Coco-Sulfate", mildness: "7/10", foam: "Rich, stable", note: "Slightly milder than SLS" },
+]
+
+const DEFAULT_SURFACTANTS_COSURFACTANT = [
+  { inci_name: "Cocamidopropyl Betaine", note: "Foam booster, viscosity builder" },
+  { inci_name: "Lauryl Glucoside", note: "APG, gentle, cold-processable" },
 ]
 
 // Silicone alternatives
@@ -375,6 +387,13 @@ function SkeletonCard({ dark }: { dark: boolean }) {
   )
 }
 
+function renderBold(text: string): React.ReactNode[] {
+  const parts = text.split(/\*\*(.+?)\*\*/g)
+  return parts.map((part, i) =>
+    i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+  )
+}
+
 function IntelCard({ card, dark }: { card: IntelligenceCard; dark: boolean }) {
   const s = CARD_STYLES[card.type]
   return (
@@ -388,7 +407,7 @@ function IntelCard({ card, dark }: { card: IntelligenceCard; dark: boolean }) {
         {card.category}
       </div>
       <p style={{ fontSize: 13, fontWeight: 600, color: dark ? "#F9FAFB" : "#0D1B2A", margin: 0, marginBottom: 6 }}>{card.title}</p>
-      <p style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>{card.body}</p>
+      <p style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.6, margin: 0 }}>{renderBold(card.body)}</p>
     </div>
   )
 }
@@ -467,39 +486,53 @@ function SurfactantCard({ dark, brief, selectedSurf, setSelectedSurf, selectedCo
   dark: boolean; brief: BriefState; selectedSurf: string; setSelectedSurf: (v: string) => void;
   selectedCoSurf: string[]; toggleCoSurf: (v: string) => void
 }) {
-  const cleansers = ["Cleanser", "Shampoo", "Body Wash", "Conditioner"]
-  if (!cleansers.includes(brief.productType)) return null
+  const cleansers = ["Cleanser", "Shampoo", "Body Wash"]
+  const sulphateTerms = ["sls", "sles", "sulphate", "sulfate", "sodium lauryl", "sodium laureth"]
+  const isSulphateFree =
+    brief.mustExclude.some((e) => sulphateTerms.some((t) => e.toLowerCase().includes(t))) ||
+    sulphateTerms.some((t) => brief.freeTextConstraints.toLowerCase().includes(t))
+  const isCleansing = cleansers.includes(brief.productType)
+
+  if (!isCleansing && !isSulphateFree) return null
+
+  const primaries = isSulphateFree ? SULPHATE_FREE_SURFACTANTS_PRIMARY : DEFAULT_SURFACTANTS_PRIMARY
+  const cosurfs = isSulphateFree ? SULPHATE_FREE_SURFACTANTS_COSURFACTANT : DEFAULT_SURFACTANTS_COSURFACTANT
+  const title = isSulphateFree ? "SULPHATE-FREE SURFACTANT SYSTEM" : "SURFACTANT SYSTEM — SELECT PRIMARY"
+
   return (
-    <SelectionCard dark={dark} title="SURFACTANT SYSTEM — SELECT PRIMARY">
+    <SelectionCard dark={dark} title={title}>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
-        {SURFACTANT_OPTIONS.map((s) => {
-          const selected = selectedSurf === s.inci
+        {primaries.map((s) => {
+          const selected = selectedSurf === s.inci_name
           return (
-            <button key={s.inci} onClick={() => setSelectedSurf(s.inci)} style={{
+            <button key={s.inci_name} onClick={() => setSelectedSurf(s.inci_name)} style={{
               textAlign: "left", padding: 12, borderRadius: 8, cursor: "pointer",
               border: `1px solid ${selected ? "#D4A843" : dark ? "#1B3A5C" : "#E5E7EB"}`,
               borderLeft: `3px solid ${selected ? "#D4A843" : "transparent"}`,
               backgroundColor: selected ? (dark ? "#1C1207" : "#FFFBEB") : (dark ? "#0D1B2A" : "#F9FAFB"),
             }}>
-              <div style={{ fontSize: 12, fontWeight: 600, fontFamily: "var(--font-mono)", color: dark ? "#F9FAFB" : "#0D1B2A", marginBottom: 4 }}>{s.inci}</div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <span style={{ fontSize: 11, color: "#6B7280" }}>Mildness {s.mildness}/10</span>
+              <div style={{ fontSize: 12, fontWeight: 600, fontFamily: "var(--font-mono)", color: dark ? "#F9FAFB" : "#0D1B2A", marginBottom: 4 }}>{s.inci_name}</div>
+              <div style={{ display: "flex", gap: 12, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: "#6B7280" }}>Mildness {s.mildness}</span>
                 <span style={{ fontSize: 11, color: "#6B7280" }}>Foam: {s.foam}</span>
               </div>
+              <div style={{ fontSize: 11, color: dark ? "#9CA3AF" : "#6B7280" }}>{s.note}</div>
             </button>
           )
         })}
       </div>
       <div style={{ fontSize: 11, fontWeight: 500, color: "#6B7280", letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 8 }}>Co-Surfactants</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {COSURFACTANT_OPTIONS.map((c) => {
-          const checked = selectedCoSurf.includes(c.inci)
+        {cosurfs.map((c) => {
+          const checked = selectedCoSurf.includes(c.inci_name)
           return (
-            <label key={c.inci} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-              <input type="checkbox" checked={checked} onChange={() => toggleCoSurf(c.inci)}
-                style={{ width: 14, height: 14, accentColor: "#D4A843", cursor: "pointer" }} />
-              <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: dark ? "#F9FAFB" : "#0D1B2A" }}>{c.inci}</span>
-              <span style={{ fontSize: 11, color: "#6B7280" }}>— {c.note}</span>
+            <label key={c.inci_name} style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
+              <input type="checkbox" checked={checked} onChange={() => toggleCoSurf(c.inci_name)}
+                style={{ width: 14, height: 14, accentColor: "#D4A843", cursor: "pointer", marginTop: 2 }} />
+              <div>
+                <span style={{ fontSize: 12, fontFamily: "var(--font-mono)", color: dark ? "#F9FAFB" : "#0D1B2A" }}>{c.inci_name}</span>
+                <span style={{ fontSize: 11, color: "#6B7280" }}> — {c.note}</span>
+              </div>
             </label>
           )
         })}
