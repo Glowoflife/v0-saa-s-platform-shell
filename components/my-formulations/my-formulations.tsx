@@ -12,12 +12,20 @@ import { Search, SlidersHorizontal, Download, Link2, Archive } from "lucide-reac
 type ReportLevel = "quick" | "brief" | "dossier"
 type Status = "complete" | "draft" | "archived"
 
+type ComplianceStatus = "pass" | "review" | "fail"
+
+interface MarketCompliance {
+  code: string
+  status: ComplianceStatus
+}
+
 interface Formulation {
   id: string
   name: string
   productType: string
   format: string
-  markets: string[]
+  primaryFunction: string
+  markets: MarketCompliance[]
   reportLevel: ReportLevel
   status: Status
   credits: number
@@ -29,12 +37,12 @@ interface Formulation {
 // ---------------------------------------------------------------------------
 
 const MOCK_FORMULATIONS: Formulation[] = [
-  { id: "frm_001", name: "Brightening Serum — Phase 1", productType: "Brightening Serum", format: "Gel", markets: ["EU", "IN", "UK"], reportLevel: "dossier", status: "complete", credits: 5, date: "Mar 29, 2026" },
-  { id: "frm_002", name: "Sulphate-Free Cleansing Gel", productType: "Cleanser", format: "Gel", markets: ["UK", "US"], reportLevel: "brief", status: "draft", credits: 3, date: "Mar 27, 2026" },
-  { id: "frm_003", name: "Retinol Night Cream 0.3%", productType: "Night Cream", format: "Emulsion", markets: ["EU"], reportLevel: "brief", status: "complete", credits: 3, date: "Mar 25, 2026" },
-  { id: "frm_004", name: "SPF 50 Sunscreen Lotion", productType: "Sunscreen", format: "Lotion", markets: ["AU", "US", "CN"], reportLevel: "quick", status: "draft", credits: 1, date: "Mar 24, 2026" },
-  { id: "frm_005", name: "Hyaluronic Acid Toner", productType: "Toner", format: "Liquid", markets: ["KR", "JP"], reportLevel: "quick", status: "complete", credits: 1, date: "Mar 22, 2026" },
-  { id: "frm_006", name: "Anti-Dandruff Shampoo", productType: "Shampoo", format: "Liquid", markets: ["US"], reportLevel: "dossier", status: "archived", credits: 5, date: "Mar 18, 2026" },
+  { id: "frm_001", name: "Brightening Serum — Phase 1", productType: "Serum", format: "Gel", primaryFunction: "Brightening + Hydration", markets: [{ code: "EU", status: "pass" }, { code: "IN", status: "pass" }, { code: "UK", status: "pass" }], reportLevel: "dossier", status: "complete", credits: 5, date: "Mar 29, 2026" },
+  { id: "frm_002", name: "Sulphate-Free Cleansing Gel", productType: "Cleanser", format: "Foam", primaryFunction: "Cleansing", markets: [{ code: "UK", status: "pass" }, { code: "US", status: "pass" }, { code: "AU", status: "review" }], reportLevel: "brief", status: "draft", credits: 3, date: "Mar 27, 2026" },
+  { id: "frm_003", name: "Retinol Night Cream 0.3%", productType: "Night Cream", format: "Emulsion", primaryFunction: "Anti-ageing", markets: [{ code: "EU", status: "pass" }, { code: "UK", status: "pass" }, { code: "US", status: "review" }], reportLevel: "brief", status: "complete", credits: 3, date: "Mar 25, 2026" },
+  { id: "frm_004", name: "SPF 50 Sunscreen Lotion", productType: "Sunscreen", format: "Lotion", primaryFunction: "SPF Protection", markets: [{ code: "AU", status: "pass" }, { code: "US", status: "pass" }, { code: "CN", status: "review" }], reportLevel: "quick", status: "draft", credits: 1, date: "Mar 24, 2026" },
+  { id: "frm_005", name: "Hyaluronic Acid Toner", productType: "Toner", format: "Liquid", primaryFunction: "Hydration", markets: [{ code: "KR", status: "pass" }, { code: "JP", status: "pass" }], reportLevel: "quick", status: "complete", credits: 1, date: "Mar 22, 2026" },
+  { id: "frm_006", name: "Anti-Dandruff Shampoo", productType: "Shampoo", format: "Liquid", primaryFunction: "Anti-dandruff", markets: [{ code: "US", status: "pass" }], reportLevel: "dossier", status: "archived", credits: 5, date: "Mar 18, 2026" },
 ]
 
 // ---------------------------------------------------------------------------
@@ -57,6 +65,12 @@ const STATUS_STYLES: Record<Status, { bg: string; text: string; label: string }>
   complete: { bg: "#D1FAE5", text: "#065F46", label: "Complete" },
   draft: { bg: "#FEF3C7", text: "#92400E", label: "Draft" },
   archived: { bg: "#F3F4F6", text: "#9CA3AF", label: "Archived" },
+}
+
+const COMPLIANCE_DOT_COLORS: Record<ComplianceStatus, string> = {
+  pass: "#10B981",
+  review: "#F59E0B",
+  fail: "#EF4444",
 }
 
 const MARKETS = ["All markets", "EU", "UK", "USA", "China", "Japan", "Korea", "India", "Australia", "Canada", "Brazil"]
@@ -215,23 +229,33 @@ function FormulationCard({ formulation, dark }: { formulation: Formulation; dark
 
       {/* Row 3 — descriptor */}
       <div style={{ marginTop: 4, fontSize: 12, color: textSecondary }}>
-        {formulation.productType} · {formulation.format} · <span style={{ fontFamily: "var(--font-mono)" }}>{formulation.markets.join(" + ")}</span>
+        {formulation.productType} · {formulation.format} · {formulation.primaryFunction}
       </div>
 
-      {/* Row 4 — market chips */}
+      {/* Row 4 — market chips with compliance dots */}
       <div style={{ marginTop: 10, display: "flex", gap: 4, flexWrap: "wrap" }}>
         {marketsDisplay.map((m) => (
-          <span key={m} style={{
+          <span key={m.code} style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
             fontSize: 10,
             textTransform: "uppercase",
             fontWeight: 500,
             borderRadius: 4,
-            border: `1px solid ${borderColor}`,
-            backgroundColor: dark ? "#1F2937" : "#F9FAFB",
-            color: dark ? "#D1D5DB" : "#374151",
-            padding: "2px 6px",
+            border: "1px solid #E5E7EB",
+            backgroundColor: "#F9FAFB",
+            color: "#374151",
+            padding: "3px 8px",
           }}>
-            {m}
+            <span style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              backgroundColor: COMPLIANCE_DOT_COLORS[m.status],
+              flexShrink: 0,
+            }} />
+            {m.code}
           </span>
         ))}
         {marketsOverflow > 0 && (
@@ -239,10 +263,10 @@ function FormulationCard({ formulation, dark }: { formulation: Formulation; dark
             fontSize: 10,
             fontWeight: 500,
             borderRadius: 4,
-            border: `1px solid ${borderColor}`,
-            backgroundColor: dark ? "#1F2937" : "#F9FAFB",
+            border: "1px solid #E5E7EB",
+            backgroundColor: "#F9FAFB",
             color: textSecondary,
-            padding: "2px 6px",
+            padding: "3px 8px",
           }}>
             +{marketsOverflow} more
           </span>
@@ -327,7 +351,7 @@ export function MyFormulations() {
   let filtered = MOCK_FORMULATIONS.filter((f) => {
     if (search && !f.name.toLowerCase().includes(search.toLowerCase())) return false
     if (levelFilter !== "All levels" && REPORT_LEVEL_LABELS[f.reportLevel] !== levelFilter) return false
-    if (marketFilter !== "All markets" && !f.markets.includes(marketFilter === "USA" ? "US" : marketFilter)) return false
+    if (marketFilter !== "All markets" && !f.markets.some(m => m.code === (marketFilter === "USA" ? "US" : marketFilter))) return false
     if (statusFilter !== "all" && f.status !== statusFilter) return false
     return true
   })
