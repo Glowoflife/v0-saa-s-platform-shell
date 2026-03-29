@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import Image from "next/image"
 import { useTheme } from "@/components/theme-context"
 import { Copy, Share2, RotateCcw, ChevronDown, Check, FileText, Bookmark } from "lucide-react"
 
@@ -946,7 +947,9 @@ export function FormulationOutputPage() {
       {/* Dossier Cover (print only) */}
       {reportLevel === "dossier" && (
         <div className="dossier-cover" style={{ display: "none" }}>
-          <div style={{ fontFamily: "var(--font-sans)", fontSize: 28, fontWeight: 700, color: "#0D1B2A" }}>theformulator.ai</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+            <Image src="/logo.svg" alt="theformulator.ai" width={80} height={80} />
+          </div>
           <div style={{ height: 2, backgroundColor: "#D4A843", margin: "16px 0" }} />
           <div style={{ fontSize: 24, fontWeight: 700, color: "#0D1B2A", marginBottom: 8 }}>{formula.name}</div>
           <div style={{ fontSize: 14, color: "#6B7280", marginBottom: 4 }}>{formula.organisation}</div>
