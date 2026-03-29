@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import { useTheme } from "@/components/theme-context"
 import { Copy, Share2, RotateCcw, ChevronDown, Check, FileText, Bookmark } from "lucide-react"
@@ -920,6 +920,59 @@ export function FormulationOutputPage() {
   const [pendingGenerate, setPendingGenerate] = useState<string | null>(null)
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(formula.name)
+
+  // Hydrate from real API result if present
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("tf_last_formulation")
+      if (!stored) return
+      const data = JSON.parse(stored)
+
+      // Map API response fields onto formula state
+      const level: ReportLevel =
+        data.report_level === "dossier" ? "dossier" :
+        data.report_level === "brief" ? "brief" : "quick"
+
+      const mappedIngredients: Ingredient[] = (data.formulation ?? []).map((row: Record<string, unknown>) => ({
+        inci: String(row.inci ?? row.ingredient ?? ""),
+        phase: (String(row.phase ?? "A").toUpperCase() as "A" | "B" | "C"),
+        pct: String(row.percentage ?? row.pct ?? "q.s."),
+        function: String(row.function ?? row.role ?? ""),
+        safety_score: row.safety_score != null ? Number(row.safety_score) : null,
+        confidence: (row.confidence as ConfidenceLevel) ?? "medium",
+      }))
+
+      const mappedRegulatory: RegulatoryItem[] = (data.regulatory_flags ?? []).map((r: Record<string, unknown>) => ({
+        market: String(r.market ?? ""),
+        status: (r.status as RegStatus) ?? "warning",
+        notes: String(r.notes ?? r.detail ?? ""),
+      }))
+
+      setFormula((prev) => ({
+        ...prev,
+        id: data.formulation_id ?? prev.id,
+        name: data.product_name ?? prev.name,
+        reportLevel: level,
+          variants: [
+            {
+              ...prev.variants[0],
+              generated: true,
+              ingredients: mappedIngredients.length > 0 ? mappedIngredients : prev.variants[0].ingredients,
+              regulatoryStatus: mappedRegulatory.length > 0 ? mappedRegulatory : prev.variants[0].regulatoryStatus,
+              formulationNotes: data.processing_instructions
+                ? [data.processing_instructions, ...(data.expected_ph ? [`Expected pH: ${data.expected_ph}`] : [])]
+                : prev.variants[0].formulationNotes,
+            },
+            ...prev.variants.slice(1),
+          ],
+      }))
+      setReportLevel(level)
+      setNameValue(data.product_name ?? formula.name)
+    } catch {
+      // malformed stored data — fall back to mock
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const activeVariant = formula.variants.find((v) => v.id === activeVariantId) ?? formula.variants[0]
   const visibleVariants = reportLevel === "quick" ? formula.variants.slice(0, 2) : formula.variants
