@@ -18,7 +18,6 @@ interface BriefState {
   // Layer 2
   targetMarkets: string[]
   claims: string[]
-  certificationTargets: string[]
   targetRetailers: string[]
   regulatoryPriority: string
   // Layer 3
@@ -62,7 +61,6 @@ const DEFAULT_BRIEF: BriefState = {
   targetSkinTypes: [],
   targetMarkets: [],
   claims: [],
-  certificationTargets: [],
   targetRetailers: [],
   regulatoryPriority: "",
   mustInclude: [],
@@ -551,7 +549,7 @@ function calcCompleteness(b: BriefState): number {
   if (b.primaryFunctions.length > 0) filled++
   if (b.targetSkinTypes.length > 0) filled++
   if (b.targetMarkets.length > 0) filled++
-  if (b.certificationTargets.length > 0 || b.regulatoryPriority) filled++
+  if (b.regulatoryPriority) filled++
   if (b.mustInclude.length > 0 || b.mustExclude.length > 0) filled++
   if (b.fragranceApproach) filled++
   if (b.budgetTier) filled++
@@ -560,7 +558,7 @@ function calcCompleteness(b: BriefState): number {
   if (b.packagingType) filled++
   if (b.pricePositioning) filled++
   if (b.targetLaunchDate) filled++
-  return Math.round((filled / 14) * 100)
+  return Math.round((filled / 13) * 100)
 }
 
 const COMPLETENESS_HINTS = [
@@ -581,6 +579,11 @@ export function BriefInterview() {
   const [brief, setBrief] = useState<BriefState>(DEFAULT_BRIEF)
   const [intelligenceCards, setIntelligenceCards] = useState<IntelligenceCard[]>(DEFAULT_CARDS)
   const [isLoadingIntelligence, setIsLoadingIntelligence] = useState(false)
+
+  // Paste & parse state
+  const [rawBrief, setRawBrief] = useState("")
+  const [isParsing, setIsParsing] = useState(false)
+  const [parseStatus, setParseStatus] = useState<"idle" | "success" | "error">("idle")
 
   // Conditional selection state
   const [selectedPreservative, setSelectedPreservative] = useState("")
@@ -624,6 +627,30 @@ export function BriefInterview() {
   const set = <K extends keyof BriefState>(field: K, value: BriefState[K]) =>
     setBrief({ ...brief, [field]: value })
 
+  const parseBrief = async () => {
+    if (!rawBrief.trim()) return
+    setIsParsing(true)
+    setParseStatus("idle")
+    try {
+      const res = await fetch("/api/brief-intelligence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "parse", rawText: rawBrief }),
+      })
+      const data = await res.json()
+      if (data.success && data.fields) {
+        setBrief((prev) => ({ ...prev, ...data.fields }))
+        setParseStatus("success")
+      } else {
+        setParseStatus("error")
+      }
+    } catch {
+      setParseStatus("error")
+    } finally {
+      setIsParsing(false)
+    }
+  }
+
   const completeness = calcCompleteness(brief)
   const hintIndex = Math.min(Math.floor(completeness / 25), COMPLETENESS_HINTS.length - 1)
 
@@ -663,6 +690,69 @@ export function BriefInterview() {
           </div>
         </div>
 
+        {/* Paste Your Brief card */}
+        <SectionCard dark={dark} title="PASTE YOUR BRIEF">
+          <div>
+            <textarea
+              rows={6}
+              value={rawBrief}
+              onChange={(e) => { setRawBrief(e.target.value); setParseStatus("idle") }}
+              placeholder="Paste your formulation brief here — e.g. 'A lightweight brightening serum for dry and sensitive skin, EU and India markets, Sephora Clean compliant, no silicones, natural preservation, pH 4.5–5.5, premium positioning targeting The Ordinary and Allies of Skin...'"
+              style={{
+                width: "100%",
+                border: `1px solid ${parseStatus === "success" ? "#2D6A4F" : parseStatus === "error" ? "#991B1B" : dark ? "#1B3A5C" : "#E5E7EB"}`,
+                borderRadius: 6,
+                backgroundColor: dark ? "#0D1B2A" : "#FFFFFF",
+                color: dark ? "#F9FAFB" : "#0D1B2A",
+                fontSize: 13,
+                padding: "10px 12px",
+                resize: "vertical",
+                outline: "none",
+                fontFamily: "inherit",
+                lineHeight: 1.5,
+                boxSizing: "border-box",
+              }}
+            />
+            {parseStatus === "success" && (
+              <div style={{ fontSize: 12, color: "#2D6A4F", marginTop: 6 }}>
+                Brief parsed — review and adjust below
+              </div>
+            )}
+            {parseStatus === "error" && (
+              <div style={{ fontSize: 12, color: "#991B1B", marginTop: 6 }}>
+                Could not parse brief — fill the form below
+              </div>
+            )}
+          </div>
+          <button
+            onClick={parseBrief}
+            disabled={isParsing || !rawBrief.trim()}
+            style={{
+              backgroundColor: isParsing || !rawBrief.trim() ? "#E5E7EB" : "#D4A843",
+              color: isParsing || !rawBrief.trim() ? "#9CA3AF" : "#0D1B2A",
+              fontWeight: 600,
+              fontSize: 13,
+              height: 38,
+              borderRadius: 8,
+              border: "none",
+              cursor: isParsing || !rawBrief.trim() ? "not-allowed" : "pointer",
+              paddingLeft: 20,
+              paddingRight: 20,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            {isParsing && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: "spin 0.8s linear infinite" }}>
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            )}
+            {isParsing ? "Parsing…" : "Parse Brief →"}
+          </button>
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </SectionCard>
+
         {/* Layer 1 — Product Definition */}
         <SectionCard dark={dark} title="PRODUCT DEFINITION">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
@@ -678,7 +768,6 @@ export function BriefInterview() {
         <SectionCard dark={dark} title="MARKETS &amp; REGULATORY">
           <MarketPills selected={brief.targetMarkets} dark={dark} onToggle={(v) => toggle("targetMarkets", v)} />
           <PillGroup label="Claims" options={CLAIMS} selected={brief.claims} dark={dark} onToggle={(v) => toggle("claims", v)} />
-          <PillGroup label="Certification Targets" options={CERTIFICATIONS} selected={brief.certificationTargets} dark={dark} onToggle={(v) => toggle("certificationTargets", v)} />
           <PillGroup label="Target Retailers" options={RETAILERS} selected={brief.targetRetailers} dark={dark} onToggle={(v) => toggle("targetRetailers", v)} />
           <SelectField label="Regulatory Priority" value={brief.regulatoryPriority} options={REGULATORY_PRIORITY_OPTIONS} dark={dark} onChange={(v) => set("regulatoryPriority", v)} />
         </SectionCard>
