@@ -11,11 +11,14 @@ import {
   Layers,
   TestTube,
   Settings,
+  ShieldCheck,
+  LogOut,
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useTheme } from "@/components/theme-context"
+import { useState, useEffect } from "react"
 
 type NavItem = {
   icon: React.ElementType
@@ -42,6 +45,36 @@ const secondaryNav: NavItem[] = [
 export function Sidebar() {
   const { dark, toggleDark } = useTheme()
   const pathname = usePathname()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("tf_user")
+      if (cached) {
+        const user = JSON.parse(cached)
+        if (user?.role === "admin") { setIsAdmin(true); return }
+      }
+      const token = localStorage.getItem("tf_access_token")
+      if (!token) return
+      fetch("https://api.theformulator.ai/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.ok ? r.json() : null)
+        .then((user) => {
+          if (!user) return
+          localStorage.setItem("tf_user", JSON.stringify(user))
+          if (user.role === "admin") setIsAdmin(true)
+        })
+        .catch(() => {})
+    } catch {}
+  }, [])
+
+  const handleSignOut = () => {
+    localStorage.removeItem("tf_access_token")
+    localStorage.removeItem("tf_refresh_token")
+    localStorage.removeItem("tf_user")
+    window.location.href = "https://theformulator.ai"
+  }
 
   return (
     <aside
@@ -105,6 +138,30 @@ export function Sidebar() {
             </Link>
           )
         })}
+
+        {/* Admin link — only visible to admin role */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            style={
+              pathname === "/admin"
+                ? { borderLeft: "3px solid #D4A843", backgroundColor: "rgba(212,168,67,0.10)", paddingLeft: 9, textDecoration: "none" }
+                : { borderLeft: "3px solid transparent", paddingLeft: 9, textDecoration: "none" }
+            }
+            className="flex items-center gap-3 h-11 pr-3 w-full"
+            onMouseEnter={(e) => {
+              if (pathname !== "/admin") (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.05)"
+            }}
+            onMouseLeave={(e) => {
+              if (pathname !== "/admin") (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"
+            }}
+          >
+            <ShieldCheck size={18} style={{ color: pathname === "/admin" ? "#D4A843" : "#D4A843", opacity: pathname === "/admin" ? 1 : 0.7 }} />
+            <span style={{ color: pathname === "/admin" ? "#D4A843" : "rgba(212,168,67,0.70)", fontSize: 13, fontWeight: 500 }}>
+              Admin
+            </span>
+          </Link>
+        )}
       </nav>
 
       {/* Divider */}
@@ -227,6 +284,23 @@ export function Sidebar() {
             />
           </button>
         </div>
+
+        {/* Sign out */}
+        <button
+          onClick={handleSignOut}
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            width: "100%", padding: "8px 0",
+            background: "transparent", border: "none",
+            color: "#6B7280", fontSize: 12, cursor: "pointer",
+            textAlign: "left",
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#9CA3AF" }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#6B7280" }}
+        >
+          <LogOut size={14} style={{ color: "#6B7280" }} />
+          Sign out
+        </button>
 
         {/* CTA Button */}
         <Link
