@@ -170,6 +170,15 @@ export default function AdminPage() {
         }
         if (!res.ok) throw new Error("failed")
         const json = await res.json()
+        const usageArray = json.usage_by_level || []
+        json.stats = {
+          ...json.stats,
+          usage_by_level: {
+            quick:   usageArray.find((u: any) => u.reason === 'quick')?.count   || 0,
+            brief:   usageArray.find((u: any) => u.reason === 'brief')?.count   || 0,
+            dossier: usageArray.find((u: any) => u.reason === 'dossier')?.count || 0,
+          },
+        }
         setData(json)
       })
       .catch((err) => {
