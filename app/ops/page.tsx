@@ -158,6 +158,11 @@ export default function AdminPage() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {
+        if (res.status === 401) {
+          localStorage.removeItem("tf_access_token")
+          window.location.href = "https://theformulator.ai"
+          return
+        }
         if (res.status === 403) {
           setAccessDenied(true)
           setTimeout(() => { window.location.href = "/" }, 2000)
@@ -167,8 +172,8 @@ export default function AdminPage() {
         const json = await res.json()
         setData(json)
       })
-      .catch(() => {
-        // API not live — use mock
+      .catch((err) => {
+        console.error("Dashboard fetch error:", err)
         setData(MOCK)
       })
       .finally(() => setLoading(false))
