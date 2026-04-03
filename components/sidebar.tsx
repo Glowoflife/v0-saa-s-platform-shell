@@ -142,22 +142,22 @@ export function Sidebar() {
         {/* Admin link — only visible to admin role */}
         {isAdmin && (
           <Link
-            href="/admin"
+            href="/ops"
             style={
-              pathname === "/admin"
+              pathname === "/ops"
                 ? { borderLeft: "3px solid #D4A843", backgroundColor: "rgba(212,168,67,0.10)", paddingLeft: 9, textDecoration: "none" }
                 : { borderLeft: "3px solid transparent", paddingLeft: 9, textDecoration: "none" }
             }
             className="flex items-center gap-3 h-11 pr-3 w-full"
             onMouseEnter={(e) => {
-              if (pathname !== "/admin") (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.05)"
+              if (pathname !== "/ops") (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.05)"
             }}
             onMouseLeave={(e) => {
-              if (pathname !== "/admin") (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"
+              if (pathname !== "/ops") (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"
             }}
           >
-            <ShieldCheck size={18} style={{ color: pathname === "/admin" ? "#D4A843" : "#D4A843", opacity: pathname === "/admin" ? 1 : 0.7 }} />
-            <span style={{ color: pathname === "/admin" ? "#D4A843" : "rgba(212,168,67,0.70)", fontSize: 13, fontWeight: 500 }}>
+            <ShieldCheck size={18} style={{ color: pathname === "/ops" ? "#D4A843" : "#D4A843", opacity: pathname === "/ops" ? 1 : 0.7 }} />
+            <span style={{ color: pathname === "/ops" ? "#D4A843" : "rgba(212,168,67,0.70)", fontSize: 13, fontWeight: 500 }}>
               Admin
             </span>
           </Link>
@@ -245,7 +245,7 @@ export function Sidebar() {
                 whiteSpace: "nowrap",
               }}
             >
-              INTELLIGENCE · 27 CREDITS
+              {"INTELLIGENCE — 27 CREDITS"}
             </span>
           </div>
           <Settings size={16} style={{ color: "rgba(255,255,255,0.50)" }} />
