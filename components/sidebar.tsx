@@ -245,7 +245,7 @@ export function Sidebar() {
                 whiteSpace: "nowrap",
               }}
             >
-              {"INTELLIGENCE"}{" · "}{"27 CREDITS"}
+              {"INTELLIGENCE — 27 CREDITS"}
             </span>
           </div>
           <Settings size={16} style={{ color: "rgba(255,255,255,0.50)" }} />
