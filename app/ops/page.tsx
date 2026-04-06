@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useTheme } from "@/components/theme-context"
+import { apiFetch } from "@/lib/api-client"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -154,9 +155,7 @@ export default function AdminPage() {
       return
     }
 
-    fetch("https://api.theformulator.ai/admin/dashboard", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch("https://api.theformulator.ai/admin/dashboard")
       .then(async (res) => {
         if (res.status === 401) {
           localStorage.removeItem("tf_access_token")
@@ -194,9 +193,8 @@ export default function AdminPage() {
     const token = localStorage.getItem("tf_access_token")
 
     try {
-      const res = await fetch("https://api.theformulator.ai/admin/grant-credits", {
+      const res = await apiFetch("https://api.theformulator.ai/admin/grant-credits", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ user_id: userId, credits: parseInt(String(credits), 10) }),
       })
       if (!res.ok) throw new Error()
@@ -216,10 +214,9 @@ export default function AdminPage() {
   const handleToggleActive = async (user: User) => {
     const token = localStorage.getItem("tf_access_token")
     try {
-      await fetch("https://api.theformulator.ai/admin/set-active", {
+      await apiFetch("https://api.theformulator.ai/admin/set-active", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ user_id: user.user_id, is_active: !user.is_active }),
+        body: JSON.stringify({ user_id: userId, is_active: !user.is_active }),
       })
       setData((prev) => prev ? {
         ...prev,
