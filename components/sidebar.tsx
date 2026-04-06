@@ -19,6 +19,7 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useTheme } from "@/components/theme-context"
 import { useState, useEffect } from "react"
+import { apiFetch } from "@/lib/api-client"
 
 type NavItem = {
   icon: React.ElementType
@@ -56,9 +57,7 @@ export function Sidebar() {
       }
       const token = localStorage.getItem("tf_access_token")
       if (!token) return
-      fetch("https://api.theformulator.ai/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      apiFetch("https://api.theformulator.ai/auth/me")
         .then((r) => r.ok ? r.json() : null)
         .then((user) => {
           if (!user) return
