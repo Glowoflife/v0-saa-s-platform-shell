@@ -195,7 +195,7 @@ export default function AdminPage() {
     try {
       const res = await apiFetch("https://api.theformulator.ai/admin/grant-credits", {
         method: "POST",
-        body: JSON.stringify({ user_id: userId, credits: parseInt(String(credits), 10) }),
+        body: JSON.stringify({ user_id: userId, credits: parseInt(grantInputs[userId] as string, 10) || 0 }),
       })
       if (!res.ok) throw new Error()
       setData((prev) => prev ? {
@@ -325,7 +325,7 @@ export default function AdminPage() {
                           min={1}
                           placeholder="N"
                           value={grantInputs[user.user_id] ?? ""}
-                          onChange={(e) => setGrantInputs((s) => ({ ...s, [user.user_id]: String(parseInt(e.target.value) || 0) }))}
+                          onChange={(e) => setGrantInputs((s) => ({ ...s, [user.user_id]: e.target.value.replace(/\D/g, "") }))}
                           style={{
                             width: 60, height: 32, borderRadius: 6, border: `1px solid ${border}`,
                             padding: "0 8px", fontSize: 13, backgroundColor: dark ? "#1B3A5C" : "#F9FAFB",
