@@ -139,7 +139,7 @@ export default function AdminPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
-  const [grantInputs, setGrantInputs] = useState<Record<string, string>>({})
+  const [grantInputs, setGrantInputs] = useState<Record<string, number>>({})
   const [grantStatus, setGrantStatus] = useState<Record<string, "success" | "error" | null>>({})
 
   const bg = dark ? "#060F1A" : "#F4F6F9"
@@ -188,14 +188,14 @@ export default function AdminPage() {
   }, [])
 
   const handleGrant = async (userId: string) => {
-    const credits = parseInt(grantInputs[userId] ?? "0")
+    const credits = grantInputs[userId] ?? 0
     if (!credits || credits <= 0) return
     const token = localStorage.getItem("tf_access_token")
 
     try {
       const res = await apiFetch("https://api.theformulator.ai/admin/grant-credits", {
         method: "POST",
-        body: JSON.stringify({ user_id: userId, credits: parseInt(grantInputs[userId] as string, 10) || 0 }),
+        body: JSON.stringify({ user_id: userId, credits: grantInputs[userId] ?? 0 }),
       })
       if (!res.ok) throw new Error()
       setData((prev) => prev ? {
@@ -324,8 +324,8 @@ export default function AdminPage() {
                           type="number"
                           min={1}
                           placeholder="N"
-                          value={grantInputs[user.user_id] ?? ""}
-                          onChange={(e) => setGrantInputs((s) => ({ ...s, [user.user_id]: e.target.value.replace(/\D/g, "") }))}
+                          value={grantInputs[user.user_id] ?? 0}
+                          onChange={(e) => setGrantInputs((s) => ({ ...s, [user.user_id]: parseInt(e.target.value) || 0 }))}
                           style={{
                             width: 60, height: 32, borderRadius: 6, border: `1px solid ${border}`,
                             padding: "0 8px", fontSize: 13, backgroundColor: dark ? "#1B3A5C" : "#F9FAFB",
