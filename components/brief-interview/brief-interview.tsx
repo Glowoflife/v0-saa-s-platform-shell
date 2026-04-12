@@ -93,7 +93,28 @@ const DEFAULT_CARDS: IntelligenceCard[] = [
 
 const PRODUCT_TYPES = ["Serum", "Moisturiser", "Cleanser", "Toner", "Mask", "Eye Cream", "SPF", "Body Lotion", "Shampoo", "Conditioner", "Body Wash"]
 const FORMATS = ["Gel", "Cream", "Oil", "Lotion", "Balm", "Mist", "Powder", "Stick"]
-const TEXTURES = ["Lightweight", "Rich", "Watery", "Silky", "Matte", "Dewy"]
+const RINSE_OFF_TYPES = ["Cleanser", "Shampoo", "Body Wash", "Face Wash", "Conditioner"]
+const TEXTURES_LEAVE_ON = [
+  "Lightweight",
+  "Serum-like",
+  "Lotion",
+  "Medium cream",
+  "Rich cream",
+  "Balm",
+  "Oil",
+  "Gel",
+  "Gel-cream",
+]
+const TEXTURES_RINSE_OFF = [
+  "Watery",
+  "Gel",
+  "Foaming gel",
+  "Cream-to-foam",
+  "Milk",
+  "Oil-to-milk",
+  "Paste",
+  "Scrub",
+]
 const FUNCTIONS = ["Hydration", "Brightening", "Anti-Ageing", "Acne Control", "SPF Protection", "Barrier Repair", "Soothing", "Firming"]
 const SKIN_TYPES = ["All Skin", "Dry", "Oily", "Sensitive", "Combination", "Mature"]
 const MARKETS = [
@@ -874,9 +895,14 @@ export function BriefInterview() {
         {/* Layer 1 — Product Definition */}
         <SectionCard dark={dark} title="PRODUCT DEFINITION">
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <SelectField label="Product Type" value={brief.productType} options={PRODUCT_TYPES} dark={dark} onChange={(v) => set("productType", v)} />
+            <SelectField label="Product Type" value={brief.productType} options={PRODUCT_TYPES} dark={dark} onChange={(v) => {
+              const wasRinseOff = RINSE_OFF_TYPES.includes(brief.productType)
+              const isRinseOff = RINSE_OFF_TYPES.includes(v)
+              const crossesBoundary = wasRinseOff !== isRinseOff
+              setBrief({ ...brief, productType: v, texture: crossesBoundary ? "" : brief.texture })
+            }} />
             <SelectField label="Format" value={brief.format} options={FORMATS} dark={dark} onChange={(v) => set("format", v)} />
-            <SelectField label="Texture" value={brief.texture} options={TEXTURES} dark={dark} onChange={(v) => set("texture", v)} />
+            <SelectField label="Texture" value={brief.texture} options={RINSE_OFF_TYPES.includes(brief.productType) ? TEXTURES_RINSE_OFF : TEXTURES_LEAVE_ON} dark={dark} onChange={(v) => set("texture", v)} />
           </div>
           <PillGroup label="Primary Functions" options={FUNCTIONS} selected={brief.primaryFunctions} dark={dark} onToggle={(v) => toggle("primaryFunctions", v)} />
           <PillGroup label="Target Skin Types" options={SKIN_TYPES} selected={brief.targetSkinTypes} dark={dark} onToggle={(v) => toggle("targetSkinTypes", v)} />
@@ -906,9 +932,14 @@ export function BriefInterview() {
             <SelectField label="Viscosity Target" value={brief.viscosityTarget} options={VISCOSITY_OPTIONS} dark={dark} onChange={(v) => set("viscosityTarget", v)} />
             <SelectField label="Preservation Strategy" value={brief.preservationStrategy} options={PRESERVATION_OPTIONS} dark={dark} onChange={(v) => set("preservationStrategy", v)} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <NumberInput label="pH Min" value={brief.phRange?.min ?? ""} min={2} max={10} step={0.1} dark={dark} placeholder="e.g. 4.5" onChange={(v) => set("phRange", v !== null ? { min: v, max: brief.phRange?.max ?? v } : null)} />
-            <NumberInput label="pH Max" value={brief.phRange?.max ?? ""} min={2} max={10} step={0.1} dark={dark} placeholder="e.g. 6.5" onChange={(v) => set("phRange", v !== null ? { min: brief.phRange?.min ?? v, max: v } : null)} />
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <NumberInput label="pH Min" value={brief.phRange?.min ?? ""} min={0} max={14} step={0.1} dark={dark} placeholder="e.g. 4.5" onChange={(v) => setBrief((prev) => ({ ...prev, phRange: { min: v ?? 4.0, max: prev.phRange?.max ?? 7.0 } }))} />
+              <NumberInput label="pH Max" value={brief.phRange?.max ?? ""} min={0} max={14} step={0.1} dark={dark} placeholder="e.g. 6.5" onChange={(v) => setBrief((prev) => ({ ...prev, phRange: { min: prev.phRange?.min ?? 4.0, max: v ?? 7.0 } }))} />
+            </div>
+            {brief.phRange && brief.phRange.min > brief.phRange.max && (
+              <div style={{ fontSize: 11, color: "#991B1B", marginTop: 4 }}>Min pH must be less than max pH</div>
+            )}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <SelectField label="Packaging Type" value={brief.packagingType} options={PACKAGING_OPTIONS} dark={dark} onChange={(v) => set("packagingType", v)} />
