@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { ClipboardCopy, Check } from "lucide-react"
 import { useTheme } from "@/components/theme-context"
 
 // ---------------------------------------------------------------------------
@@ -72,13 +73,24 @@ const MOCK: DashboardData = {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// FastAPI returns ISO strings without a timezone suffix (e.g. "2026-04-03T14:22:00.000000").
+// new Date() on a tz-less string is implementation-defined and produces "Invalid Date" in
+// some environments. Appending Z normalises to UTC consistently.
+function parseDate(iso: string): Date {
+  if (!iso.endsWith("Z") && !/[+-]\d{2}:\d{2}$/.test(iso)) {
+    return new Date(iso + "Z")
+  }
+  return new Date(iso)
+}
+
 function formatDate(iso: string | null) {
   if (!iso) return "Never"
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+  return parseDate(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
 function formatDateShort(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+  return parseDate(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
 const TYPE_PILL: Record<string, { label: string; bg: string; color: string }> = {
@@ -140,12 +152,23 @@ export default function AdminPage() {
   const [accessDenied, setAccessDenied] = useState(false)
   const [grantInputs, setGrantInputs] = useState<Record<string, string>>({})
   const [grantStatus, setGrantStatus] = useState<Record<string, "success" | "error" | null>>({})
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const bg = dark ? "#060F1A" : "#F4F6F9"
   const cardBg = dark ? "#0D1B2A" : "#FFFFFF"
   const border = dark ? "#1B3A5C" : "#E5E7EB"
   const textPrimary = dark ? "#F9FAFB" : "#0D1B2A"
   const textSecondary = dark ? "#9CA3AF" : "#6B7280"
+
+  // ⚠️ TEMPORARY: localStorage persistence for mock mode only.
+  // Remove this entire useEffect when the real API (api.theformulator.ai) is fully wired.
+  // The fallback chain is: live API → localStorage → MOCK constant.
+  // Once the API is live, this block becomes dead code.
+  useEffect(() => {
+    if (data) {
+      localStorage.setItem("tf_ops_dashboard_state", JSON.stringify(data))
+    }
+  }, [data])
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("tf_access_token") : null
@@ -174,31 +197,50 @@ export default function AdminPage() {
       })
       .catch((err) => {
         console.error("Dashboard fetch error:", err)
-        setData(MOCK)
+        const saved = localStorage.getItem("tf_ops_dashboard_state")
+        setData(saved ? JSON.parse(saved) : MOCK)
       })
       .finally(() => setLoading(false))
   }, [])
 
   const handleGrant = async (userId: string) => {
-    const credits = parseInt(grantInputs[userId] ?? "0")
-    if (!credits || credits <= 0) return
+    const credits = parseInt(grantInputs[userId] ?? "")
+    if (isNaN(credits) || credits <= 0) {
+      setGrantStatus((s) => ({ ...s, [userId]: "error" }))
+      setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 2000)
+      return
+    }
     const token = localStorage.getItem("tf_access_token")
+    const targetUser = data?.users.find((u: User) => u.user_id === userId)
+
+    const applyGrant = () => {
+      const newTx: Transaction = {
+        id: `t${Date.now()}`,
+        date: new Date().toISOString(),
+        user_email: targetUser?.email ?? "",
+        type: "admin_grant",
+        credits,
+      }
+      setData((prev) => prev ? {
+        ...prev,
+        users: prev.users.map((u) => u.user_id === userId ? { ...u, credit_balance: u.credit_balance + credits } : u),
+        recent_transactions: [newTx, ...prev.recent_transactions],
+      } : prev)
+      setGrantStatus((s) => ({ ...s, [userId]: "success" }))
+      setGrantInputs((i) => ({ ...i, [userId]: "" }))
+    }
 
     try {
       const res = await fetch("https://api.theformulator.ai/admin/grant-credits", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ user_id: userId, credits }),
+        body: JSON.stringify({ user_id: userId, credits: parseInt(grantInputs[userId] ?? "", 10) }),
       })
       if (!res.ok) throw new Error()
-      setData((prev) => prev ? {
-        ...prev,
-        users: prev.users.map((u) => u.user_id === userId ? { ...u, credit_balance: u.credit_balance + credits } : u),
-      } : prev)
-      setGrantStatus((s) => ({ ...s, [userId]: "success" }))
-      setGrantInputs((i) => ({ ...i, [userId]: "" }))
+      applyGrant()
     } catch {
-      setGrantStatus((s) => ({ ...s, [userId]: "error" }))
+      // API not live — apply locally
+      applyGrant()
     } finally {
       setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 2000)
     }
@@ -206,22 +248,30 @@ export default function AdminPage() {
 
   const handleToggleActive = async (user: User) => {
     const token = localStorage.getItem("tf_access_token")
+    const newIsActive = !user.is_active
+
+    const applyToggle = () => {
+      setData((prev) => prev ? {
+        ...prev,
+        stats: {
+          ...prev.stats,
+          active_users: prev.stats.active_users + (newIsActive ? 1 : -1),
+        },
+        users: prev.users.map((u) => u.user_id === user.user_id ? { ...u, is_active: newIsActive } : u),
+      } : prev)
+    }
+
     try {
-      await fetch("https://api.theformulator.ai/admin/set-active", {
+      const res = await fetch("https://api.theformulator.ai/admin/set-active", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ user_id: user.user_id, is_active: !user.is_active }),
+        body: JSON.stringify({ user_id: user.user_id, is_active: newIsActive }),
       })
-      setData((prev) => prev ? {
-        ...prev,
-        users: prev.users.map((u) => u.user_id === user.user_id ? { ...u, is_active: !u.is_active } : u),
-      } : prev)
+      if (!res.ok) throw new Error()
+      applyToggle()
     } catch {
-      // silent — mock fallback
-      setData((prev) => prev ? {
-        ...prev,
-        users: prev.users.map((u) => u.user_id === user.user_id ? { ...u, is_active: !u.is_active } : u),
-      } : prev)
+      // API not live — apply locally
+      applyToggle()
     }
   }
 
@@ -289,7 +339,29 @@ export default function AdminPage() {
                 <tr key={user.user_id} style={{ borderBottom: `1px solid ${border}` }}>
                   {/* User */}
                   <td style={{ padding: "12px 16px" }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: textPrimary }}>{user.email}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: textPrimary }}>{user.email}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(user.email)
+                          setCopiedId(user.user_id)
+                          setTimeout(() => setCopiedId(null), 1500)
+                        }}
+                        title="Copy email"
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          width: 22, height: 22, padding: 0, border: "none", borderRadius: 4,
+                          backgroundColor: "transparent", cursor: "pointer",
+                          color: copiedId === user.user_id ? "#065F46" : "#9CA3AF",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {copiedId === user.user_id
+                          ? <Check size={12} />
+                          : <ClipboardCopy size={12} />
+                        }
+                      </button>
+                    </div>
                     <div style={{ fontSize: 11, color: textSecondary, marginTop: 2 }}>{user.full_name}</div>
                     <div style={{ fontSize: 11, color: textSecondary }}>{user.organisation}</div>
                   </td>
@@ -317,7 +389,7 @@ export default function AdminPage() {
                         <input
                           type="number"
                           min={1}
-                          placeholder="N"
+                          placeholder="10"
                           value={grantInputs[user.user_id] ?? ""}
                           onChange={(e) => setGrantInputs((s) => ({ ...s, [user.user_id]: e.target.value }))}
                           style={{
