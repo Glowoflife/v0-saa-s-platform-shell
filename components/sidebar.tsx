@@ -89,7 +89,10 @@ export function Sidebar() {
       {/* Primary Nav */}
       <nav className="flex flex-col mt-4 px-0">
         {primaryNav.map((item) => {
-          const isActive = pathname === item.href
+          const isActive =
+          item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(item.href + "/")
           const Icon = item.icon
           return (
             <Link

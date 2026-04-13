@@ -9,16 +9,22 @@ const PAGE_TITLES: Record<string, string> = {
   "/new-formulation": "New Formulation",
   "/formula-output": "Formula Output",
   "/formulations": "My Formulations",
-  "/formulations/frm_001": "Formulation",
   "/partner": "Formulation Partner",
   "/regulatory": "Regulatory Database",
   "/market": "Market Intelligence",
 }
 
+function getPageTitle(pathname: string): string {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
+  // Handle dynamic routes: /formulations/[id]
+  if (pathname.startsWith("/formulations/")) return "My Formulations"
+  return "theformulator.ai"
+}
+
 export function Topbar() {
   const { dark } = useTheme()
   const pathname = usePathname()
-  const title = PAGE_TITLES[pathname] ?? "theformulator.ai"
+  const title = getPageTitle(pathname)
 
   return (
     <header
