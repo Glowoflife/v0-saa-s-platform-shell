@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "@/components/theme-context"
+import { apiFetch } from "@/lib/api-client"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -695,12 +696,8 @@ export function BriefInterview() {
       const completeness = calcCompleteness(brief)
       const reportLevel = completeness >= 80 ? "brief" : "quick"
 
-      const response = await fetch("https://api.theformulator.ai/api/generate", {
+      const response = await apiFetch("https://api.theformulator.ai/api/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
         body: JSON.stringify({ raw_brief: rawBriefText, report_level: reportLevel }),
       })
 
