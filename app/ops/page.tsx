@@ -201,6 +201,15 @@ export default function AdminPage() {
             dossier: usageArray.find((u: any) => u.reason === 'dossier')?.count || 0,
           },
         }
+        json.users = (json.users || []).map((u: any) => ({ ...u, user_id: u.id }))
+        json.recent_transactions = (json.recent_transactions || []).map((t: any) => ({
+          id: t.id,
+          date: t.created_at,
+          user_email: t.email,
+          type: t.reason,
+          credits: t.delta,
+          formulation_id: t.formulation_id,
+        }))
         setData(json)
       })
       .catch((err) => {
