@@ -12,6 +12,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/partner": "Formulation Partner",
   "/regulatory": "Regulatory Database",
   "/market": "Market Intelligence",
+  "/ops": "Admin Dashboard",
 }
 
 function getPageTitle(pathname: string): string {

@@ -285,17 +285,17 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <main style={{ padding: "80px 32px 48px", backgroundColor: bg, minHeight: "100vh" }}>
+      <div>
         <div style={{ color: textSecondary, fontSize: 14 }}>Loading...</div>
-      </main>
+      </div>
     )
   }
 
   if (accessDenied) {
     return (
-      <main style={{ padding: "80px 32px 48px", backgroundColor: bg, minHeight: "100vh" }}>
+      <div>
         <div style={{ color: "#991B1B", fontSize: 15, fontWeight: 500 }}>Access denied — admin only. Redirecting...</div>
-      </main>
+      </div>
     )
   }
 
@@ -310,7 +310,7 @@ export default function AdminPage() {
   )
 
   return (
-    <main style={{ padding: "80px 32px 48px", backgroundColor: bg, minHeight: "100vh" }}>
+    <div>
       {/* Page header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: textPrimary, margin: 0 }}>Admin Dashboard</h1>
@@ -514,6 +514,6 @@ export default function AdminPage() {
           ))}
         </div>
       </div>
-    </main>
+    </div>
   )
 }
