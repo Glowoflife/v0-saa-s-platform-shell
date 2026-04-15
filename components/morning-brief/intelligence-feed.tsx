@@ -55,7 +55,7 @@ export function IntelligenceFeed({ intelligence_items, intelligence_stats }: Int
   const dividerColor = dark ? "#1F2937" : "#E5E7EB"
 
   return (
-    <div style={{ marginTop: 16 }}>
+    <div>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
         <span

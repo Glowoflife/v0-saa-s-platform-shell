@@ -451,14 +451,22 @@ export default function Home() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "65% 35%",
-          gap: 20,
+          gridTemplateColumns: "63% 37%",
+          gap: 24,
           marginTop: 32,
+          alignItems: "start",
         }}
       >
-        <WhitespaceSignal />
-
+        {/* LEFT: Intelligence feed — main content area */}
         <div>
+          <IntelligenceFeed
+            intelligence_items={data.intelligence_items ?? []}
+            intelligence_stats={data.intelligence_stats ?? EMPTY_INTELLIGENCE_STATS}
+          />
+        </div>
+
+        {/* RIGHT: sticky sidebar */}
+        <div style={{ position: "sticky", top: 80 }}>
           <RegulatoryAlerts
             regulatoryAlerts={data.regulatory_alerts}
             alertCounts={data.alert_counts}
@@ -466,12 +474,7 @@ export default function Home() {
             failingSources={data.failing_sources}
             marketsMonitored={data.markets_monitored}
           />
-          {(data.intelligence_items?.length ?? 0) > 0 && (
-            <IntelligenceFeed
-              intelligence_items={data.intelligence_items!}
-              intelligence_stats={data.intelligence_stats ?? EMPTY_INTELLIGENCE_STATS}
-            />
-          )}
+          <WhitespaceSignal />
           <div style={{ marginTop: 16 }}>
             <div
               style={{
