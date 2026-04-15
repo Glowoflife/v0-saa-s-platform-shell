@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import { useTheme } from "@/components/theme-context"
 import { Copy, Share2, RotateCcw, ChevronDown, Check, FileText, Bookmark } from "lucide-react"
+import { FeedbackWidget } from "@/components/feedback-widget"
 
 // ---------------------------------------------------------------------------
 // Dev flag — set false before shipping
@@ -920,6 +921,7 @@ export function FormulationOutputPage() {
   const [pendingGenerate, setPendingGenerate] = useState<string | null>(null)
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(formula.name)
+  const [isDeformulation, setIsDeformulation] = useState(false)
 
   // Hydrate from real API result if present
   useEffect(() => {
@@ -968,6 +970,7 @@ export function FormulationOutputPage() {
       }))
       setReportLevel(level)
       setNameValue(data.product_name ?? formula.name)
+      setIsDeformulation(Boolean(data.is_deformulation))
     } catch {
       // malformed stored data — fall back to mock
     }
@@ -1158,6 +1161,13 @@ export function FormulationOutputPage() {
         <div className="no-print" style={{ flex: "0 0 calc(32% - 24px)", minWidth: 0, position: "sticky", top: 80 }}>
           <UpgradePanel reportLevel={reportLevel} dark={dark} />
           <FormulaActions reportLevel={reportLevel} formulaName={formula.name} dark={dark} />
+          <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+            <FeedbackWidget
+              formulation_id={formula.id}
+              report_level={reportLevel}
+              is_deformulation={isDeformulation}
+            />
+          </div>
         </div>
       </div>
 
