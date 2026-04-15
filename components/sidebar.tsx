@@ -5,6 +5,7 @@ import {
   PlusCircle,
   Grid,
   FlaskConical,
+  Beaker,
   Shield,
   BarChart2,
   BookOpen,
@@ -31,6 +32,7 @@ type NavItem = {
 const primaryNav: NavItem[] = [
   { icon: Sun, label: "Morning Brief", href: "/" },
   { icon: PlusCircle, label: "New Formulation", href: "/new-formulation" },
+  { icon: Beaker, label: "Deformulate", href: "/deformulate" },
   { icon: Grid, label: "My Formulations", href: "/formulations" },
   { icon: FlaskConical, label: "Formulation Partner", href: "/partner" },
   { icon: Shield, label: "Regulatory Database", href: "/regulatory" },

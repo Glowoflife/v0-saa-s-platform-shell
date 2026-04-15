@@ -4,7 +4,11 @@
       "Bash(npx tsc:*)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(npx next:*)",
-      "Bash(node_modules/.bin/next build:*)"
+      "Bash(node_modules/.bin/next build:*)",
+      "Read(//Users/jeevanprakash/.npm/_npx/**)",
+      "Bash(npx lucide-react@0.564.0 --list)",
+      "Bash(node -e \"const l = require\\('lucide-react'\\); const keys = Object.keys\\(l\\).filter\\(k => /beaker|flask|vial|split|lab/i.test\\(k\\)\\); console.log\\(keys\\)\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('packages',{}\\).get\\('node_modules/lucide-react',{}\\).get\\('version','not found'\\)\\)\")"
     ]
   }
 }
