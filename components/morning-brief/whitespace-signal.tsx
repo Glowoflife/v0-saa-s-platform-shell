@@ -12,7 +12,6 @@ export function WhitespaceSignal() {
         border: `1px solid ${dark ? "#166534" : "#BBF7D0"}`,
         borderRadius: 10,
         padding: "18px 20px",
-        marginTop: 16,
       }}
     >
       <div

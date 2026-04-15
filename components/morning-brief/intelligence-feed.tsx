@@ -1,214 +1,257 @@
 "use client"
 
+import { useState } from "react"
 import { useTheme } from "@/components/theme-context"
-import type { MorningBriefRecentActivity } from "@/components/morning-brief/types"
+import type { IntelligenceItem, IntelligenceStats } from "@/components/morning-brief/types"
 
-const TYPE_STYLES: Record<string, { borderLeft: string; pillBg: string; pillText: string }> = {
-  quick: { borderLeft: "#1D4ED8", pillBg: "#DBEAFE", pillText: "#1D4ED8" },
-  brief: { borderLeft: "#B45309", pillBg: "#FEF3C7", pillText: "#92400E" },
-  dossier: { borderLeft: "#065F46", pillBg: "#D1FAE5", pillText: "#065F46" },
-  admin_grant: { borderLeft: "#065F46", pillBg: "#D1FAE5", pillText: "#065F46" },
+const CATEGORY_CONFIG: Record<string, { label: string; bg: string }> = {
+  all: { label: "ALL", bg: "#374151" },
+  regulatory: { label: "REG", bg: "#991B1B" },
+  science: { label: "SCIENCE", bg: "#1E40AF" },
+  market: { label: "MARKET", bg: "#065F46" },
+  ingredient: { label: "INGREDIENT", bg: "#B45309" },
+  industry: { label: "INDUSTRY", bg: "#4B5563" },
+  supply_chain: { label: "SUPPLY CHAIN", bg: "#6B21A8" },
 }
 
-const DEFAULT_STYLE = {
-  borderLeft: "#6B7280",
-  pillBg: "#F3F4F6",
-  pillText: "#4B5563",
-}
-
-function getActivityStyle(type: string) {
-  return TYPE_STYLES[type.toLowerCase()] ?? DEFAULT_STYLE
-}
-
-function formatTypeLabel(type: string) {
-  return type
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ")
-}
-
-function formatRelativeTime(value: string) {
+function formatRelativeTime(value: string | null): string {
+  if (!value) return ""
   const parsed = new Date(value)
-
-  if (Number.isNaN(parsed.getTime())) {
-    return "Just now"
-  }
+  if (Number.isNaN(parsed.getTime())) return ""
 
   const diffMs = parsed.getTime() - Date.now()
   const diffMinutes = Math.round(diffMs / 60000)
-  const relativeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
+  const fmt = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
 
-  if (Math.abs(diffMinutes) < 60) {
-    return relativeFormatter.format(diffMinutes, "minute")
-  }
-
+  if (Math.abs(diffMinutes) < 60) return fmt.format(diffMinutes, "minute")
   const diffHours = Math.round(diffMinutes / 60)
-  if (Math.abs(diffHours) < 24) {
-    return relativeFormatter.format(diffHours, "hour")
-  }
-
+  if (Math.abs(diffHours) < 24) return fmt.format(diffHours, "hour")
   const diffDays = Math.round(diffHours / 24)
-  if (Math.abs(diffDays) < 30) {
-    return relativeFormatter.format(diffDays, "day")
-  }
-
-  const diffMonths = Math.round(diffDays / 30)
-  return relativeFormatter.format(diffMonths, "month")
-}
-
-function formatCreditLabel(credits: number) {
-  if (credits === 0) {
-    return "No credit change"
-  }
-
-  const absoluteCredits = Math.abs(credits)
-  const suffix = absoluteCredits === 1 ? "credit" : "credits"
-
-  if (credits > 0) {
-    return `+${absoluteCredits} ${suffix} added`
-  }
-
-  return `-${absoluteCredits} ${suffix} used`
-}
-
-function normalizeDescription(description: string, type: string) {
-  const trimmed = description.trim()
-
-  if (!trimmed) {
-    return formatTypeLabel(type)
-  }
-
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
-}
-
-function ActivityCard({ activity, dark }: { activity: MorningBriefRecentActivity; dark: boolean }) {
-  const style = getActivityStyle(activity.type)
-  const creditTone = activity.credits > 0 ? "#065F46" : activity.credits < 0 ? "#991B1B" : "#6B7280"
-
-  return (
-    <div
-      style={{
-        backgroundColor: dark ? "#111827" : "#FFFFFF",
-        border: `1px solid ${dark ? "#1F2937" : "#E5E7EB"}`,
-        borderLeft: `3px solid ${style.borderLeft}`,
-        borderRadius: 10,
-        padding: "16px 20px",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <span
-          style={{
-            backgroundColor: style.pillBg,
-            color: style.pillText,
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            borderRadius: 4,
-            padding: "2px 8px",
-          }}
-        >
-          {formatTypeLabel(activity.type)}
-        </span>
-        <span
-          style={{
-            fontSize: 11,
-            color: "#9CA3AF",
-            fontFamily: "var(--font-mono)",
-            flexShrink: 0,
-          }}
-        >
-          {formatRelativeTime(activity.created_at)}
-        </span>
-      </div>
-
-      <div
-        style={{
-          fontSize: 13,
-          fontWeight: 600,
-          color: dark ? "#F9FAFB" : "#0D1B2A",
-          marginTop: 8,
-        }}
-      >
-        {normalizeDescription(activity.description, activity.type)}
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          marginTop: 8,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 11,
-            color: "#6B7280",
-          }}
-        >
-          Recent account activity
-        </span>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: creditTone,
-            fontFamily: "var(--font-mono)",
-          }}
-        >
-          {formatCreditLabel(activity.credits)}
-        </span>
-      </div>
-    </div>
-  )
+  if (Math.abs(diffDays) < 30) return fmt.format(diffDays, "day")
+  return fmt.format(Math.round(diffDays / 30), "month")
 }
 
 interface IntelligenceFeedProps {
-  activities: MorningBriefRecentActivity[]
+  intelligence_items: IntelligenceItem[]
+  intelligence_stats: IntelligenceStats
 }
 
-export function IntelligenceFeed({ activities }: IntelligenceFeedProps) {
+export function IntelligenceFeed({ intelligence_items, intelligence_stats }: IntelligenceFeedProps) {
   const { dark } = useTheme()
+  const [activeFilter, setActiveFilter] = useState("all")
 
-  if (activities.length === 0) {
-    return (
-      <div
-        style={{
-          backgroundColor: dark ? "#111827" : "#FFFFFF",
-          border: `1px solid ${dark ? "#1F2937" : "#E5E7EB"}`,
-          borderRadius: 10,
-          padding: "20px 22px",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: dark ? "#F9FAFB" : "#0D1B2A",
-          }}
-        >
-          No recent activity yet
-        </div>
-        <div
-          style={{
-            fontSize: 12,
-            color: "#6B7280",
-            marginTop: 4,
-          }}
-        >
-          Your latest formulation and credit events will appear here.
-        </div>
-      </div>
-    )
-  }
+  const filtered =
+    activeFilter === "all"
+      ? intelligence_items
+      : intelligence_items.filter((item) => item.category === activeFilter)
+
+  const displayed = filtered.slice(0, 15)
+
+  const categoryCounts = intelligence_items.reduce<Record<string, number>>((acc, item) => {
+    acc[item.category] = (acc[item.category] ?? 0) + 1
+    return acc
+  }, {})
+
+  const dividerColor = dark ? "#1F2937" : "#E5E7EB"
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {activities.map((activity, index) => (
-        <ActivityCard key={`${activity.type}-${activity.created_at}-${index}`} activity={activity} dark={dark} />
-      ))}
+    <div style={{ marginTop: 16 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            letterSpacing: "0.05em",
+            textTransform: "uppercase" as const,
+            color: "#6B7280",
+          }}
+        >
+          TODAY&apos;S INTELLIGENCE
+        </span>
+        <span style={{ fontSize: 11, color: "#9CA3AF" }}>
+          {intelligence_stats.items_this_week} items this week · {intelligence_stats.unique_sources} sources
+        </span>
+      </div>
+
+      {/* Category filter pills */}
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const, marginBottom: 10 }}>
+        {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
+          const count = key === "all" ? intelligence_items.length : (categoryCounts[key] ?? 0)
+          const isActive = activeFilter === key
+
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveFilter(key)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                backgroundColor: isActive ? config.bg : dark ? "#1F2937" : "#F3F4F6",
+                color: isActive ? "#FFFFFF" : dark ? "#9CA3AF" : "#6B7280",
+                border: `1px solid ${isActive ? config.bg : dark ? "#374151" : "#E5E7EB"}`,
+                borderRadius: 999,
+                padding: "3px 8px",
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase" as const,
+                cursor: "pointer",
+                transition: "all 0.1s",
+              }}
+            >
+              {config.label}
+              <span
+                style={{
+                  backgroundColor: isActive ? "rgba(255,255,255,0.2)" : dark ? "#374151" : "#E5E7EB",
+                  color: isActive ? "#FFFFFF" : dark ? "#9CA3AF" : "#6B7280",
+                  borderRadius: 999,
+                  padding: "0 5px",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  lineHeight: "16px",
+                }}
+              >
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Items list */}
+      <div
+        style={{
+          border: `1px solid ${dividerColor}`,
+          borderRadius: 10,
+          overflow: "hidden",
+          backgroundColor: dark ? "#111827" : "#FFFFFF",
+        }}
+      >
+        {displayed.length === 0 ? (
+          <div style={{ padding: "16px 14px", fontSize: 13, color: "#6B7280" }}>
+            No items in this category.
+          </div>
+        ) : (
+          displayed.map((item, index) => {
+            const catConfig = CATEGORY_CONFIG[item.category] ?? CATEGORY_CONFIG.industry
+            const relTime = formatRelativeTime(item.published_at)
+            const isLast = index === displayed.length - 1
+
+            const inner = (
+              <>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+                  <span
+                    style={{
+                      backgroundColor: catConfig.bg,
+                      color: "#FFFFFF",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase" as const,
+                      borderRadius: 3,
+                      padding: "2px 5px",
+                      flexShrink: 0,
+                      marginTop: 1,
+                    }}
+                  >
+                    {catConfig.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: dark ? "#F9FAFB" : "#0D1B2A",
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {item.title}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#6B7280",
+                      lineHeight: 1.5,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical" as const,
+                      overflow: "hidden",
+                      flex: 1,
+                    }}
+                  >
+                    {item.summary}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column" as const,
+                      alignItems: "flex-end",
+                      gap: 2,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ fontSize: 11, color: "#9CA3AF" }}>{item.source}</span>
+                    {relTime && <span style={{ fontSize: 11, color: "#9CA3AF" }}>{relTime}</span>}
+                  </div>
+                </div>
+              </>
+            )
+
+            const rowStyle = {
+              padding: "10px 14px",
+              borderBottom: isLast ? "none" : `1px solid ${dividerColor}`,
+              display: "block",
+              color: "inherit",
+              textDecoration: "none",
+            }
+
+            if (item.source_url) {
+              return (
+                <a
+                  key={item.id}
+                  href={item.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ ...rowStyle, cursor: "pointer" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = dark ? "#0D1B2A" : "#F9FAFB"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent"
+                  }}
+                >
+                  {inner}
+                </a>
+              )
+            }
+
+            return (
+              <div key={item.id} style={rowStyle}>
+                {inner}
+              </div>
+            )
+          })
+        )}
+      </div>
+
+      {/* View all link */}
+      {intelligence_stats.total_items > 15 && (
+        <div style={{ marginTop: 8, textAlign: "right" as const }}>
+          <span
+            style={{
+              fontSize: 12,
+              color: dark ? "#60A5FA" : "#1D4ED8",
+              cursor: "pointer",
+            }}
+          >
+            View all {intelligence_stats.total_items} items →
+          </span>
+        </div>
+      )}
     </div>
   )
 }

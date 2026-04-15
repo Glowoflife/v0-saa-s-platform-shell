@@ -54,6 +54,27 @@ export interface MorningBriefRecentActivity {
   created_at: string
 }
 
+export interface IntelligenceItem {
+  id: number
+  category: "regulatory" | "ingredient" | "market" | "science" | "industry" | "supply_chain"
+  source: string
+  title: string
+  summary: string
+  relevance_score: number
+  affected_inci: string[]
+  affected_markets: string[]
+  tags: string[]
+  source_url: string | null
+  published_at: string | null
+}
+
+export interface IntelligenceStats {
+  total_items: number
+  items_today: number
+  items_this_week: number
+  unique_sources: number
+}
+
 export interface MorningBriefData {
   greeting_time: "morning" | "afternoon" | "evening"
   date: string
@@ -65,4 +86,7 @@ export interface MorningBriefData {
   failing_sources: MorningBriefFailingSource[]
   markets_monitored: string[]
   recent_activity: MorningBriefRecentActivity[]
+  intelligence_items?: IntelligenceItem[]
+  intelligence_category_counts?: Record<string, number>
+  intelligence_stats?: IntelligenceStats
 }

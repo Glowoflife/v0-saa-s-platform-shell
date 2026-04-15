@@ -9,8 +9,16 @@ import { StatRow } from "@/components/morning-brief/stat-row"
 import { ActiveProjects } from "@/components/morning-brief/active-projects"
 import { RegulatoryAlerts } from "@/components/morning-brief/regulatory-alerts"
 import { IntelligenceFeed } from "@/components/morning-brief/intelligence-feed"
+import { ActivityFeed } from "@/components/morning-brief/activity-feed"
 import { WhitespaceSignal } from "@/components/morning-brief/whitespace-signal"
-import type { MorningBriefData } from "@/components/morning-brief/types"
+import type { MorningBriefData, IntelligenceStats } from "@/components/morning-brief/types"
+
+const EMPTY_INTELLIGENCE_STATS: IntelligenceStats = {
+  total_items: 0,
+  items_today: 0,
+  items_this_week: 0,
+  unique_sources: 0,
+}
 
 const LOGIN_URL = "https://theformulator.ai"
 const MORNING_BRIEF_URL = "https://api.theformulator.ai/api/morning-brief"
@@ -442,26 +450,13 @@ export default function Home() {
 
       <div
         style={{
-          fontSize: 11,
-          fontWeight: 500,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: "#9CA3AF",
-          marginTop: 32,
-          marginBottom: 12,
-        }}
-      >
-        RECENT ACTIVITY
-      </div>
-
-      <div
-        style={{
           display: "grid",
           gridTemplateColumns: "65% 35%",
           gap: 20,
+          marginTop: 32,
         }}
       >
-        <IntelligenceFeed activities={data.recent_activity} />
+        <WhitespaceSignal />
 
         <div>
           <RegulatoryAlerts
@@ -471,7 +466,27 @@ export default function Home() {
             failingSources={data.failing_sources}
             marketsMonitored={data.markets_monitored}
           />
-          <WhitespaceSignal />
+          {(data.intelligence_items?.length ?? 0) > 0 && (
+            <IntelligenceFeed
+              intelligence_items={data.intelligence_items!}
+              intelligence_stats={data.intelligence_stats ?? EMPTY_INTELLIGENCE_STATS}
+            />
+          )}
+          <div style={{ marginTop: 16 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#9CA3AF",
+                marginBottom: 12,
+              }}
+            >
+              RECENT ACTIVITY
+            </div>
+            <ActivityFeed activities={data.recent_activity} />
+          </div>
         </div>
       </div>
     </div>
