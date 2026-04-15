@@ -212,17 +212,12 @@ export default function AdminPage() {
   }, [])
 
   const handleGrant = async (userId: string) => {
-<<<<<<< HEAD
     const credits = parseInt(grantInputs[userId] ?? "")
     if (isNaN(credits) || credits <= 0) {
       setGrantStatus((s) => ({ ...s, [userId]: "error" }))
       setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 2000)
       return
     }
-=======
-    const credits = grantInputs[userId] ?? 0
-    if (!credits || credits <= 0) return
->>>>>>> caaae60060839bbd5fb04045ae3d5bc4b7f3e55b
     const token = localStorage.getItem("tf_access_token")
     const targetUser = data?.users.find((u: User) => u.user_id === userId)
 
@@ -246,12 +241,8 @@ export default function AdminPage() {
     try {
       const res = await apiFetch("https://api.theformulator.ai/admin/grant-credits", {
         method: "POST",
-<<<<<<< HEAD
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ user_id: userId, credits: parseInt(grantInputs[userId] ?? "", 10) }),
-=======
-        body: JSON.stringify({ user_id: userId, credits: grantInputs[userId] ?? 0 }),
->>>>>>> caaae60060839bbd5fb04045ae3d5bc4b7f3e55b
       })
       if (!res.ok) throw new Error()
       applyGrant()
@@ -279,16 +270,10 @@ export default function AdminPage() {
     }
 
     try {
-<<<<<<< HEAD
       const res = await fetch("https://api.theformulator.ai/admin/set-active", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ user_id: user.user_id, is_active: newIsActive }),
-=======
-      await apiFetch("https://api.theformulator.ai/admin/set-active", {
-        method: "POST",
-        body: JSON.stringify({ user_id: userId, is_active: !user.is_active }),
->>>>>>> caaae60060839bbd5fb04045ae3d5bc4b7f3e55b
       })
       if (!res.ok) throw new Error()
       applyToggle()
@@ -412,15 +397,9 @@ export default function AdminPage() {
                         <input
                           type="number"
                           min={1}
-<<<<<<< HEAD
                           placeholder="10"
                           value={grantInputs[user.user_id] ?? ""}
                           onChange={(e) => setGrantInputs((s) => ({ ...s, [user.user_id]: e.target.value }))}
-=======
-                          placeholder="N"
-                          value={grantInputs[user.user_id] ?? 0}
-                          onChange={(e) => setGrantInputs((s) => ({ ...s, [user.user_id]: parseInt(e.target.value) || 0 }))}
->>>>>>> caaae60060839bbd5fb04045ae3d5bc4b7f3e55b
                           style={{
                             width: 60, height: 32, borderRadius: 6, border: `1px solid ${border}`,
                             padding: "0 8px", fontSize: 13, backgroundColor: dark ? "#1B3A5C" : "#F9FAFB",
