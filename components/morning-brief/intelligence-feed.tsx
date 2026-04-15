@@ -1,68 +1,89 @@
 "use client"
 
 import { useTheme } from "@/components/theme-context"
+import type { MorningBriefRecentActivity } from "@/components/morning-brief/types"
 
-type FeedType = "REG" | "TREND" | "WHITESPACE" | "SCIENCE"
-
-interface FeedItem {
-  type: FeedType
-  date: string
-  heading: string
-  body: string
-  markets?: string[]
-  readMore?: boolean
+const TYPE_STYLES: Record<string, { borderLeft: string; pillBg: string; pillText: string }> = {
+  quick: { borderLeft: "#1D4ED8", pillBg: "#DBEAFE", pillText: "#1D4ED8" },
+  brief: { borderLeft: "#B45309", pillBg: "#FEF3C7", pillText: "#92400E" },
+  dossier: { borderLeft: "#065F46", pillBg: "#D1FAE5", pillText: "#065F46" },
+  admin_grant: { borderLeft: "#065F46", pillBg: "#D1FAE5", pillText: "#065F46" },
 }
 
-const TYPE_STYLES: Record<FeedType, { borderLeft: string; pillBg: string; pillText: string }> = {
-  REG: { borderLeft: "#991B1B", pillBg: "#FEE2E2", pillText: "#991B1B" },
-  TREND: { borderLeft: "#1D4ED8", pillBg: "#DBEAFE", pillText: "#1D4ED8" },
-  WHITESPACE: { borderLeft: "#065F46", pillBg: "#D1FAE5", pillText: "#065F46" },
-  SCIENCE: { borderLeft: "#6D28D9", pillBg: "#EDE9FE", pillText: "#6D28D9" },
+const DEFAULT_STYLE = {
+  borderLeft: "#6B7280",
+  pillBg: "#F3F4F6",
+  pillText: "#4B5563",
 }
 
-const feedItems: FeedItem[] = [
-  {
-    type: "REG",
-    date: "Mar 29 2026",
-    heading: "EU Commission limits Titanium Dioxide in leave-on cosmetics",
-    body: "Regulation (EU) 2024/1234 restricts TiO₂ (nano) to 0% in sprayable leave-on formats effective June 2025. Non-nano TiO₂ in non-spray leave-on products remains permitted at current levels.",
-    markets: ["EU", "UK"],
-    readMore: true,
-  },
-  {
-    type: "TREND",
-    date: "Mar 28 2026",
-    heading: "Polyglutamic Acid rising in Asia-Pacific hydration serums",
-    body: "PGA appears in 847 products added to the corpus in Q1 2026, up 34% from Q1 2025. Co-occurrence with Sodium Hyaluronate in 91% of cases — increasingly positioned as a hyaluronate complement rather than alternative.",
-    markets: ["KR", "JP", "CN"],
-  },
-  {
-    type: "WHITESPACE",
-    date: "Mar 27 2026",
-    heading: "Bakuchiol + Azelaic Acid combination underserved in EU market",
-    body: "Only 12 of 38,400 EU leave-on products in the corpus combine Bakuchiol with Azelaic Acid. Both ingredients are EU-permitted with no concentration conflict. Strong white space for a retinol-alternative + brightening positioning.",
-    markets: ["EU", "UK"],
-    readMore: true,
-  },
-  {
-    type: "REG",
-    date: "Mar 25 2026",
-    heading: "SCCS finalises opinion on Kojic Acid — face products restricted to 1%",
-    body: "SCCS/1234/24 restricts Kojic Acid to 1% in face care (down from 2%). Body care remains at 0.7%. EU implementation expected Q3 2026. Affects 2 formulations in your active projects.",
-    markets: ["EU", "UK", "AU"],
-    readMore: true,
-  },
-  {
-    type: "TREND",
-    date: "Mar 24 2026",
-    heading: "Squalane replacing Cyclopentasiloxane in Indian premium serums",
-    body: "Following India's 2025 guidance on silicone accumulation in wastewater, 23% of premium Indian serum launches in Q4 2025 substituted Cyclopentasiloxane with Squalane or Hemisqualane. Trend accelerating in Q1 2026.",
-    markets: ["IN"],
-  },
-]
+function getActivityStyle(type: string) {
+  return TYPE_STYLES[type.toLowerCase()] ?? DEFAULT_STYLE
+}
 
-function FeedCard({ item, dark }: { item: FeedItem; dark: boolean }) {
-  const style = TYPE_STYLES[item.type]
+function formatTypeLabel(type: string) {
+  return type
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+}
+
+function formatRelativeTime(value: string) {
+  const parsed = new Date(value)
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "Just now"
+  }
+
+  const diffMs = parsed.getTime() - Date.now()
+  const diffMinutes = Math.round(diffMs / 60000)
+  const relativeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
+
+  if (Math.abs(diffMinutes) < 60) {
+    return relativeFormatter.format(diffMinutes, "minute")
+  }
+
+  const diffHours = Math.round(diffMinutes / 60)
+  if (Math.abs(diffHours) < 24) {
+    return relativeFormatter.format(diffHours, "hour")
+  }
+
+  const diffDays = Math.round(diffHours / 24)
+  if (Math.abs(diffDays) < 30) {
+    return relativeFormatter.format(diffDays, "day")
+  }
+
+  const diffMonths = Math.round(diffDays / 30)
+  return relativeFormatter.format(diffMonths, "month")
+}
+
+function formatCreditLabel(credits: number) {
+  if (credits === 0) {
+    return "No credit change"
+  }
+
+  const absoluteCredits = Math.abs(credits)
+  const suffix = absoluteCredits === 1 ? "credit" : "credits"
+
+  if (credits > 0) {
+    return `+${absoluteCredits} ${suffix} added`
+  }
+
+  return `-${absoluteCredits} ${suffix} used`
+}
+
+function normalizeDescription(description: string, type: string) {
+  const trimmed = description.trim()
+
+  if (!trimmed) {
+    return formatTypeLabel(type)
+  }
+
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+}
+
+function ActivityCard({ activity, dark }: { activity: MorningBriefRecentActivity; dark: boolean }) {
+  const style = getActivityStyle(activity.type)
+  const creditTone = activity.credits > 0 ? "#065F46" : activity.credits < 0 ? "#991B1B" : "#6B7280"
 
   return (
     <div
@@ -74,8 +95,7 @@ function FeedCard({ item, dark }: { item: FeedItem; dark: boolean }) {
         padding: "16px 20px",
       }}
     >
-      {/* Top row — type pill + date */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <span
           style={{
             backgroundColor: style.pillBg,
@@ -88,20 +108,20 @@ function FeedCard({ item, dark }: { item: FeedItem; dark: boolean }) {
             padding: "2px 8px",
           }}
         >
-          {item.type}
+          {formatTypeLabel(activity.type)}
         </span>
         <span
           style={{
             fontSize: 11,
             color: "#9CA3AF",
             fontFamily: "var(--font-mono)",
+            flexShrink: 0,
           }}
         >
-          {item.date}
+          {formatRelativeTime(activity.created_at)}
         </span>
       </div>
 
-      {/* Heading */}
       <div
         style={{
           fontSize: 13,
@@ -110,69 +130,84 @@ function FeedCard({ item, dark }: { item: FeedItem; dark: boolean }) {
           marginTop: 8,
         }}
       >
-        {item.heading}
+        {normalizeDescription(activity.description, activity.type)}
       </div>
 
-      {/* Body */}
       <div
         style={{
-          fontSize: 12,
-          color: "#6B7280",
-          lineHeight: 1.6,
-          marginTop: 4,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          marginTop: 8,
         }}
       >
-        {item.body}
-      </div>
-
-      {/* Market tags */}
-      {item.markets && item.markets.length > 0 && (
-        <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-          {item.markets.map((m) => (
-            <span
-              key={m}
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 10,
-                color: dark ? "#9CA3AF" : "#6B7280",
-                backgroundColor: dark ? "#1F2937" : "#F9FAFB",
-                border: `1px solid ${dark ? "#374151" : "#E5E7EB"}`,
-                borderRadius: 4,
-                padding: "2px 6px",
-              }}
-            >
-              {m}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Read more link */}
-      {item.readMore && (
-        <a
-          href="#"
+        <span
           style={{
-            display: "inline-block",
             fontSize: 11,
-            color: "#D4A843",
-            marginTop: 8,
-            textDecoration: "none",
+            color: "#6B7280",
           }}
         >
-          Read more →
-        </a>
-      )}
+          Recent account activity
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: creditTone,
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          {formatCreditLabel(activity.credits)}
+        </span>
+      </div>
     </div>
   )
 }
 
-export function IntelligenceFeed() {
+interface IntelligenceFeedProps {
+  activities: MorningBriefRecentActivity[]
+}
+
+export function IntelligenceFeed({ activities }: IntelligenceFeedProps) {
   const { dark } = useTheme()
+
+  if (activities.length === 0) {
+    return (
+      <div
+        style={{
+          backgroundColor: dark ? "#111827" : "#FFFFFF",
+          border: `1px solid ${dark ? "#1F2937" : "#E5E7EB"}`,
+          borderRadius: 10,
+          padding: "20px 22px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: dark ? "#F9FAFB" : "#0D1B2A",
+          }}
+        >
+          No recent activity yet
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: "#6B7280",
+            marginTop: 4,
+          }}
+        >
+          Your latest formulation and credit events will appear here.
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {feedItems.map((item, i) => (
-        <FeedCard key={i} item={item} dark={dark} />
+      {activities.map((activity, index) => (
+        <ActivityCard key={`${activity.type}-${activity.created_at}-${index}`} activity={activity} dark={dark} />
       ))}
     </div>
   )
