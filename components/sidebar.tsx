@@ -6,11 +6,6 @@ import {
   Grid,
   FlaskConical,
   Beaker,
-  Shield,
-  BarChart2,
-  BookOpen,
-  Layers,
-  TestTube,
   Settings,
   ShieldCheck,
   LogOut,
@@ -26,7 +21,6 @@ type NavItem = {
   icon: React.ElementType
   label: string
   href: string
-  soon?: boolean
 }
 
 const primaryNav: NavItem[] = [
@@ -35,14 +29,6 @@ const primaryNav: NavItem[] = [
   { icon: Beaker, label: "Deformulate", href: "/deformulate" },
   { icon: Grid, label: "My Formulations", href: "/formulations" },
   { icon: FlaskConical, label: "Formulation Partner", href: "/partner" },
-  { icon: Shield, label: "Regulatory Database", href: "/regulatory" },
-  { icon: BarChart2, label: "Market Intelligence", href: "/market" },
-]
-
-const secondaryNav: NavItem[] = [
-  { icon: BookOpen, label: "Lab Journal", href: "/journal", soon: true },
-  { icon: Layers, label: "Batch Tracking", href: "/batch", soon: true },
-  { icon: TestTube, label: "Stability Tests", href: "/stability", soon: true },
 ]
 
 export function Sidebar() {
@@ -166,53 +152,6 @@ export function Sidebar() {
             </span>
           </Link>
         )}
-      </nav>
-
-      {/* Divider */}
-      <div
-        style={{
-          height: 1,
-          backgroundColor: "rgba(255,255,255,0.08)",
-          margin: "16px 0",
-        }}
-      />
-
-      {/* Secondary Nav — Coming Soon */}
-      <nav className="flex flex-col px-0">
-        {secondaryNav.map((item) => {
-          const Icon = item.icon
-          return (
-            <div
-              key={item.label}
-              style={{ borderLeft: "3px solid transparent", paddingLeft: 9 }}
-              className="flex items-center gap-3 h-11 pr-3 w-full"
-            >
-              <Icon size={18} style={{ color: "rgba(255,255,255,0.35)" }} />
-              <span
-                style={{
-                  color: "rgba(255,255,255,0.35)",
-                  fontSize: 13,
-                  fontWeight: 500,
-                  flex: 1,
-                }}
-              >
-                {item.label}
-              </span>
-              <span
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.08)",
-                  color: "rgba(255,255,255,0.40)",
-                  fontSize: 10,
-                  fontWeight: 500,
-                  padding: "2px 6px",
-                  borderRadius: 4,
-                }}
-              >
-                Soon
-              </span>
-            </div>
-          )
-        })}
       </nav>
 
       {/* Spacer */}
