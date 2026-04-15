@@ -1,29 +1,24 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Search, Camera, X, FileImage } from "lucide-react"
 import { useTheme } from "@/components/theme-context"
+import { apiFetch } from "@/lib/api-client"
 
 // ---------------------------------------------------------------------------
-// Mock data
+// Types
 // ---------------------------------------------------------------------------
 
-const MOCK_PRODUCTS = [
-  { id: "1", name: "CeraVe Moisturizing Cream", brand: "CeraVe", category: "Moisturizer", market: "US", ingredientCount: 22 },
-  { id: "2", name: "The Ordinary Niacinamide 10% + Zinc 1%", brand: "The Ordinary", category: "Serum", market: "CA", ingredientCount: 11 },
-  { id: "3", name: "La Roche-Posay Cicaplast Baume B5", brand: "La Roche-Posay", category: "Balm", market: "FR", ingredientCount: 18 },
-  { id: "4", name: "Minimalist 10% Niacinamide Face Serum", brand: "Minimalist", category: "Serum", market: "IN", ingredientCount: 14 },
-  { id: "5", name: "Bioderma Sensibio H2O", brand: "Bioderma", category: "Micellar Water", market: "FR", ingredientCount: 12 },
-  { id: "6", name: "Laneige Water Sleeping Mask", brand: "Laneige", category: "Sleeping Mask", market: "KR", ingredientCount: 28 },
-  { id: "7", name: "Dot & Key Watermelon Hyaluronic Sunscreen", brand: "Dot & Key", category: "Sunscreen", market: "IN", ingredientCount: 19 },
-  { id: "8", name: "Klairs Supple Preparation Toner", brand: "Klairs", category: "Toner", market: "KR", ingredientCount: 16 },
-]
-
-const MOCK_INCI_MAP: Record<string, string> = {
-  "1": "Aqua, Glycerin, Cetearyl Alcohol, Capric Triglyceride, Cetyl Alcohol, Ceteareth-20, Petrolatum, Potassium Phosphate, Ceramide NP, Ceramide AP, Ceramide EOP, Carbomer, Dimethicone, Behentrimonium Methosulfate, Sodium Lauroyl Lactylate, Sodium Hyaluronate, Cholesterol, Phenoxyethanol, Disodium EDTA, Dipotassium Phosphate, Tocopherol, Phytosphingosine, Xanthan Gum",
-  "2": "Aqua, Niacinamide, Pentylene Glycol, Zinc PCA, Dimethyl Isosorbide, Tamarindus Indica Seed Gum, Xanthan Gum, Isoceteth-20, Ethoxydiglycol, Phenoxyethanol, Chlorphenesin",
-  "4": "Aqua, Niacinamide, Glycerin, Pentylene Glycol, Sodium Hyaluronate, Allantoin, Zinc PCA, Dimethyl Isosorbide, Hydroxyethyl Acrylate/Sodium Acryloyldimethyl Taurate Copolymer, Xanthan Gum, Caprylyl Glycol, Citric Acid, Sodium Citrate, Phenoxyethanol",
+interface SearchProduct {
+  id: string
+  product_name: string
+  brand: string
+  category: string
+  country: string
+  ingredients: string[]
+  ingredient_list: string
+  claims: string
 }
 
 const MARKET_FLAGS: Record<string, string> = {
@@ -190,8 +185,10 @@ export default function DeformulatePage() {
   // Zone 1 — search
   const [searchQuery, setSearchQuery] = useState("")
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState<typeof MOCK_PRODUCTS[0] | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<SearchProduct | null>(null)
   const [notFoundMsg, setNotFoundMsg] = useState("")
+  const [searchResults, setSearchResults] = useState<SearchProduct[]>([])
+  const [isSearching, setIsSearching] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
 
   // Zone 2 — INCI input
@@ -210,13 +207,28 @@ export default function DeformulatePage() {
   // Action
   const [isDetecting, setIsDetecting] = useState(false)
 
-  // Derived
-  const filteredProducts = searchQuery.trim().length >= 1
-    ? MOCK_PRODUCTS.filter((p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.brand.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : []
+  // Debounced search effect
+  useEffect(() => {
+    const query = searchQuery.trim()
+    if (query.length < 2) {
+      setSearchResults([])
+      setIsSearching(false)
+      return
+    }
+    setIsSearching(true)
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiFetch(`https://api.theformulator.ai/api/products/search?q=${encodeURIComponent(query)}&limit=8`)
+        const data = await res.json()
+        setSearchResults(data.products ?? [])
+      } catch {
+        setSearchResults([])
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   const parsedIngredients = inciText.trim()
     ? inciText.split(",").map((s) => s.trim()).filter(Boolean)
@@ -229,7 +241,7 @@ export default function DeformulatePage() {
     setSearchQuery(val)
     setDropdownOpen(true)
     setNotFoundMsg("")
-    if (selectedProduct && val !== selectedProduct.name) {
+    if (selectedProduct && val !== selectedProduct.product_name) {
       setSelectedProduct(null)
     }
   }
@@ -238,27 +250,21 @@ export default function DeformulatePage() {
     setTimeout(() => setDropdownOpen(false), 150)
   }
 
-  function selectProduct(product: typeof MOCK_PRODUCTS[0]) {
+  function selectProduct(product: SearchProduct) {
     setSelectedProduct(product)
-    setSearchQuery(product.name)
+    setSearchQuery(product.product_name)
     setDropdownOpen(false)
     setNotFoundMsg("")
-    const inci = MOCK_INCI_MAP[product.id]
-    if (inci) {
-      setInciText(inci)
-      setActiveTab("paste")
-    } else {
-      setInciText("")
-      setNotFoundMsg("INCI list not available for this product. Paste the INCI list or upload a label photo below.")
-    }
+    setInciText(product.ingredient_list)
+    setActiveTab("paste")
   }
 
   function handleSearchEnter() {
-    if (filteredProducts.length === 0 && searchQuery.trim().length > 0) {
+    if (searchResults.length === 0 && searchQuery.trim().length > 0) {
       setNotFoundMsg("Product not found in our database. Paste the INCI list or upload a label photo below.")
       setDropdownOpen(false)
-    } else if (filteredProducts.length > 0) {
-      selectProduct(filteredProducts[0])
+    } else if (searchResults.length > 0) {
+      selectProduct(searchResults[0])
     }
   }
 
@@ -301,9 +307,41 @@ export default function DeformulatePage() {
   async function handleGenerate() {
     if (!canGenerate || isDetecting) return
     setIsDetecting(true)
-    setTimeout(() => {
-      router.push("/formulations/deform-mock-001")
-    }, 2000)
+
+    try {
+      const concObj: Record<string, number> = {}
+      knownConcentrations.forEach(c => {
+        const match = c.match(/^(.+?):\s*([\d.]+)%?$/)
+        if (match) concObj[match[1].trim()] = parseFloat(match[2])
+      })
+
+      const response = await apiFetch('https://api.theformulator.ai/api/deformulate', {
+        method: 'POST',
+        body: JSON.stringify({
+          inci_input: inciText,
+          product_id: selectedProduct?.id || null,
+          product_name: selectedProduct?.product_name || null,
+          brand: selectedProduct?.brand || null,
+          target_markets: targetMarkets,
+          report_level: reportLevel,
+          known_concentrations: Object.keys(concObj).length > 0 ? concObj : null,
+          product_type_override: productTypeOverride !== "Auto-detect" ? productTypeOverride.toLowerCase() : null,
+        })
+      })
+
+      if (!response.ok) {
+        const err = await response.json()
+        alert(err.detail || 'Deformulation failed')
+        setIsDetecting(false)
+        return
+      }
+
+      const data = await response.json()
+      router.push(`/formulations/${data.formulation_id}`)
+    } catch {
+      alert('Network error — please try again')
+      setIsDetecting(false)
+    }
   }
 
   // Styles
@@ -377,7 +415,7 @@ export default function DeformulatePage() {
             <input
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              onFocus={() => searchQuery.trim().length >= 1 && setDropdownOpen(true)}
+              onFocus={() => searchQuery.trim().length >= 2 && setDropdownOpen(true)}
               onBlur={handleSearchBlur}
               onKeyDown={(e) => e.key === "Enter" && handleSearchEnter()}
               placeholder="Search by product name or brand..."
@@ -405,7 +443,7 @@ export default function DeformulatePage() {
           </div>
 
           {/* Dropdown */}
-          {dropdownOpen && filteredProducts.length > 0 && (
+          {dropdownOpen && (isSearching || searchResults.length > 0) && searchQuery.length >= 2 && (
             <div style={{
               position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 50,
               backgroundColor: dark ? "#0D1B2A" : "#FFFFFF",
@@ -413,50 +451,56 @@ export default function DeformulatePage() {
               borderRadius: 8, overflow: "hidden",
               boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
             }}>
-              {filteredProducts.map((p) => (
-                <button
-                  key={p.id}
-                  onMouseDown={() => selectProduct(p)}
-                  style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 12,
-                    padding: "10px 14px", border: "none", textAlign: "left",
-                    backgroundColor: "transparent", cursor: "pointer",
-                    borderBottom: `1px solid ${dark ? "#1B3A5C" : "#F3F4F6"}`,
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = dark ? "#1B3A5C" : "#F9FAFB"
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"
-                  }}
-                >
-                  {/* Flag */}
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>{MARKET_FLAGS[p.market] || "🌐"}</span>
+              {isSearching ? (
+                <div style={{ padding: "12px 14px", fontSize: 12, color: "#9CA3AF" }}>
+                  Searching 561K products...
+                </div>
+              ) : (
+                searchResults.map((p) => (
+                  <button
+                    key={p.id}
+                    onMouseDown={() => selectProduct(p)}
+                    style={{
+                      width: "100%", display: "flex", alignItems: "center", gap: 12,
+                      padding: "10px 14px", border: "none", textAlign: "left",
+                      backgroundColor: "transparent", cursor: "pointer",
+                      borderBottom: `1px solid ${dark ? "#1B3A5C" : "#F3F4F6"}`,
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = dark ? "#1B3A5C" : "#F9FAFB"
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent"
+                    }}
+                  >
+                    {/* Flag */}
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>{MARKET_FLAGS[p.country] || "🌐"}</span>
 
-                  {/* Name + brand */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: dark ? "#F9FAFB" : "#0D1B2A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {p.name}
+                    {/* Name + brand */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: dark ? "#F9FAFB" : "#0D1B2A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {p.product_name}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>{p.brand}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>{p.brand}</div>
-                  </div>
 
-                  {/* Category pill */}
-                  <span style={{
-                    fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 20, flexShrink: 0,
-                    backgroundColor: dark ? "#1B3A5C" : "#EFF6FF",
-                    color: dark ? "#93C5FD" : "#1E40AF",
-                    border: `1px solid ${dark ? "#2A4A6C" : "#BFDBFE"}`,
-                  }}>
-                    {p.category}
-                  </span>
+                    {/* Category pill */}
+                    <span style={{
+                      fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 20, flexShrink: 0,
+                      backgroundColor: dark ? "#1B3A5C" : "#EFF6FF",
+                      color: dark ? "#93C5FD" : "#1E40AF",
+                      border: `1px solid ${dark ? "#2A4A6C" : "#BFDBFE"}`,
+                    }}>
+                      {p.category}
+                    </span>
 
-                  {/* Ingredient count */}
-                  <span style={{ fontSize: 11, color: "#9CA3AF", flexShrink: 0, marginLeft: 4 }}>
-                    {p.ingredientCount} inci
-                  </span>
-                </button>
-              ))}
+                    {/* Ingredient count */}
+                    <span style={{ fontSize: 11, color: "#9CA3AF", flexShrink: 0, marginLeft: 4 }}>
+                      {p.ingredients.length} inci
+                    </span>
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>
@@ -472,12 +516,12 @@ export default function DeformulatePage() {
             borderLeft: "3px solid #1E40AF",
             display: "flex", alignItems: "center", gap: 8,
           }}>
-            <span style={{ fontSize: 14 }}>{MARKET_FLAGS[selectedProduct.market] || "🌐"}</span>
+            <span style={{ fontSize: 14 }}>{MARKET_FLAGS[selectedProduct.country] || "🌐"}</span>
             <span style={{ fontSize: 12, color: dark ? "#93C5FD" : "#1E40AF", fontWeight: 500 }}>
-              {selectedProduct.name}
+              {selectedProduct.product_name}
             </span>
             <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: "auto" }}>
-              {selectedProduct.brand} · {selectedProduct.category} · {selectedProduct.market}
+              {selectedProduct.brand} · {selectedProduct.category} · {selectedProduct.country}
             </span>
           </div>
         )}
