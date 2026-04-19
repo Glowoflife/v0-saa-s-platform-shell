@@ -11,17 +11,23 @@ import { RegulatoryAlerts } from "@/components/morning-brief/regulatory-alerts"
 import { IntelligenceFeed } from "@/components/morning-brief/intelligence-feed"
 import { ActivityFeed } from "@/components/morning-brief/activity-feed"
 import { WhitespaceSignal } from "@/components/morning-brief/whitespace-signal"
-import type { MorningBriefData, IntelligenceStats } from "@/components/morning-brief/types"
-
-const EMPTY_INTELLIGENCE_STATS: IntelligenceStats = {
-  total_items: 0,
-  items_today: 0,
-  items_this_week: 0,
-  unique_sources: 0,
-}
+import { OnboardingModal } from "@/components/onboarding-modal"
+import type { MorningBriefData } from "@/components/morning-brief/types"
 
 const LOGIN_URL = "https://theformulator.ai"
 const MORNING_BRIEF_URL = "https://api.theformulator.ai/api/morning-brief"
+const AUTH_ME_URL = "https://api.theformulator.ai/auth/me"
+
+interface AuthUser {
+  id: string
+  email: string
+  full_name: string
+  organisation: string
+  role: string
+  credit_balance: number
+  created_at: string
+  onboarded_at: string | null
+}
 
 function getGreetingLabel(greetingTime: MorningBriefData["greeting_time"]) {
   if (greetingTime === "afternoon") {
@@ -295,12 +301,54 @@ function MorningBriefError({
   )
 }
 
+function MarketsMonitoredCard({ dark, count }: { dark: boolean; count: number }) {
+  return (
+    <div
+      style={{
+        backgroundColor: dark ? "#111827" : "#FFFFFF",
+        border: `1px solid ${dark ? "#1F2937" : "#BBF7D0"}`,
+        borderRadius: 10,
+        padding: "18px 20px",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 500,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase" as const,
+          color: "#065F46",
+          marginBottom: 12,
+        }}
+      >
+        MARKETS MONITORED
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            backgroundColor: "#10B981",
+            flexShrink: 0,
+          }}
+        />
+        <span style={{ fontSize: 13, color: dark ? "#D1FAE5" : "#065F46", fontWeight: 500 }}>
+          {count} markets tracked · Updated continuously
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   const { dark } = useTheme()
   const [reloadKey, setReloadKey] = useState(0)
   const [data, setData] = useState<MorningBriefData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -326,7 +374,7 @@ export default function Home() {
           return
         }
 
-        const payload = await response.json() as MorningBriefData
+        const payload = (await response.json()) as MorningBriefData
 
         if (!cancelled) {
           setData(payload)
@@ -342,7 +390,24 @@ export default function Home() {
       }
     }
 
+    async function loadAuthUser() {
+      try {
+        const res = await apiFetch(AUTH_ME_URL)
+        if (cancelled || !res.ok) return
+        const user = (await res.json()) as AuthUser
+        if (!cancelled) {
+          setAuthUser(user)
+          if (user.onboarded_at === null) {
+            setShowOnboarding(true)
+          }
+        }
+      } catch {
+        // non-critical — don't block page
+      }
+    }
+
     void loadMorningBrief()
+    void loadAuthUser()
 
     return () => {
       cancelled = true
@@ -363,6 +428,14 @@ export default function Home() {
 
   return (
     <div>
+      {showOnboarding && authUser && (
+        <OnboardingModal
+          userName={authUser.full_name}
+          creditBalance={authUser.credit_balance}
+          onClose={() => setShowOnboarding(false)}
+        />
+      )}
+
       <div
         style={{
           display: "flex",
@@ -457,23 +530,24 @@ export default function Home() {
           alignItems: "start",
         }}
       >
-        {/* LEFT: Intelligence feed — main content area */}
+        {/* LEFT: Intelligence feed */}
         <div>
-          <IntelligenceFeed
-            intelligence_items={data.intelligence_items ?? []}
-            intelligence_stats={data.intelligence_stats ?? EMPTY_INTELLIGENCE_STATS}
-          />
+          <IntelligenceFeed />
         </div>
 
         {/* RIGHT: sticky sidebar */}
         <div style={{ position: "sticky", top: 80 }}>
-          <RegulatoryAlerts
-            regulatoryAlerts={data.regulatory_alerts}
-            alertCounts={data.alert_counts}
-            sourceHealth={data.source_health}
-            failingSources={data.failing_sources}
-            marketsMonitored={data.markets_monitored}
-          />
+          {authUser?.role === "admin" ? (
+            <RegulatoryAlerts
+              regulatoryAlerts={data.regulatory_alerts}
+              alertCounts={data.alert_counts}
+              sourceHealth={data.source_health}
+              failingSources={data.failing_sources}
+              marketsMonitored={data.markets_monitored}
+            />
+          ) : (
+            <MarketsMonitoredCard dark={dark} count={data.markets_monitored.length} />
+          )}
           <WhitespaceSignal />
           <div style={{ marginTop: 16 }}>
             <div

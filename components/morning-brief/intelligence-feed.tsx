@@ -1,17 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import Link from "next/link"
 import { useTheme } from "@/components/theme-context"
-import type { IntelligenceItem, IntelligenceStats } from "@/components/morning-brief/types"
+import { apiFetch } from "@/lib/api-client"
+import type { IntelligenceItem } from "@/components/morning-brief/types"
 
-const CATEGORY_CONFIG: Record<string, { label: string; bg: string }> = {
-  all: { label: "ALL", bg: "#374151" },
-  regulatory: { label: "REG", bg: "#991B1B" },
-  science: { label: "SCIENCE", bg: "#1E40AF" },
-  market: { label: "MARKET", bg: "#065F46" },
-  ingredient: { label: "INGREDIENT", bg: "#B45309" },
-  industry: { label: "INDUSTRY", bg: "#4B5563" },
-  supply_chain: { label: "SUPPLY CHAIN", bg: "#6B21A8" },
+const CATEGORY_CONFIG: Record<string, { label: string; bg: string; apiValue: string }> = {
+  all: { label: "ALL", bg: "#374151", apiValue: "" },
+  regulatory: { label: "REG", bg: "#991B1B", apiValue: "regulatory" },
+  science: { label: "SCIENCE", bg: "#1E40AF", apiValue: "science" },
+  market: { label: "MARKET", bg: "#065F46", apiValue: "market" },
+  ingredient: { label: "INGREDIENT", bg: "#B45309", apiValue: "ingredient" },
+  industry: { label: "INDUSTRY", bg: "#4B5563", apiValue: "industry" },
+  supply_chain: { label: "SUPPLY CHAIN", bg: "#6B21A8", apiValue: "supply_chain" },
 }
 
 function formatRelativeTime(value: string | null): string {
@@ -31,28 +33,55 @@ function formatRelativeTime(value: string | null): string {
   return fmt.format(Math.round(diffDays / 30), "month")
 }
 
-interface IntelligenceFeedProps {
-  intelligence_items: IntelligenceItem[]
-  intelligence_stats: IntelligenceStats
-}
-
-export function IntelligenceFeed({ intelligence_items, intelligence_stats }: IntelligenceFeedProps) {
+export function IntelligenceFeed() {
   const { dark } = useTheme()
   const [activeFilter, setActiveFilter] = useState("all")
+  const [items, setItems] = useState<IntelligenceItem[]>([])
+  const [total, setTotal] = useState(0)
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState(true)
 
-  const filtered =
-    activeFilter === "all"
-      ? intelligence_items
-      : intelligence_items.filter((item) => item.category === activeFilter)
+  useEffect(() => {
+    let cancelled = false
 
-  const displayed = filtered.slice(0, 15)
+    async function load() {
+      setLoading(true)
+      try {
+        const catConfig = CATEGORY_CONFIG[activeFilter]
+        const params = new URLSearchParams({ days: "7", limit: "15" })
+        if (catConfig.apiValue) params.set("category", catConfig.apiValue)
 
-  const categoryCounts = intelligence_items.reduce<Record<string, number>>((acc, item) => {
-    acc[item.category] = (acc[item.category] ?? 0) + 1
-    return acc
-  }, {})
+        const res = await apiFetch(`https://api.theformulator.ai/api/intelligence?${params.toString()}`)
+        if (cancelled || !res.ok) return
 
+        const data = (await res.json()) as {
+          count: number
+          total: number
+          items: IntelligenceItem[]
+          category_counts: Record<string, number>
+        }
+
+        if (!cancelled) {
+          setItems(data.items ?? [])
+          setTotal(data.total ?? 0)
+          if (activeFilter === "all" && data.category_counts) {
+            setCategoryCounts(data.category_counts)
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [activeFilter])
+
+  const uniqueSources = new Set(items.map((i) => i.source)).size
   const dividerColor = dark ? "#1F2937" : "#E5E7EB"
+  const allCount = Object.values(categoryCounts).reduce((s, n) => s + n, 0)
 
   return (
     <div>
@@ -67,17 +96,19 @@ export function IntelligenceFeed({ intelligence_items, intelligence_stats }: Int
             color: "#6B7280",
           }}
         >
-          TODAY&apos;S INTELLIGENCE
+          LATEST INTELLIGENCE
         </span>
-        <span style={{ fontSize: 11, color: "#9CA3AF" }}>
-          {intelligence_stats.items_this_week} items this week · {intelligence_stats.unique_sources} sources
-        </span>
+        {!loading && (
+          <span style={{ fontSize: 11, color: "#9CA3AF" }}>
+            {total} items in last 7 days · {uniqueSources} unique sources
+          </span>
+        )}
       </div>
 
       {/* Category filter pills */}
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const, marginBottom: 10 }}>
         {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
-          const count = key === "all" ? intelligence_items.length : (categoryCounts[key] ?? 0)
+          const count = key === "all" ? allCount : (categoryCounts[key] ?? 0)
           const isActive = activeFilter === key
 
           return (
@@ -127,17 +158,32 @@ export function IntelligenceFeed({ intelligence_items, intelligence_stats }: Int
           borderRadius: 10,
           overflow: "hidden",
           backgroundColor: dark ? "#111827" : "#FFFFFF",
+          minHeight: 80,
         }}
       >
-        {displayed.length === 0 ? (
+        {loading ? (
+          <div style={{ padding: "16px 14px", display: "flex", flexDirection: "column" as const, gap: 10 }}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="animate-pulse"
+                style={{
+                  height: 48,
+                  backgroundColor: dark ? "#1F2937" : "#F3F4F6",
+                  borderRadius: 6,
+                }}
+              />
+            ))}
+          </div>
+        ) : items.length === 0 ? (
           <div style={{ padding: "16px 14px", fontSize: 13, color: "#6B7280" }}>
             No items in this category.
           </div>
         ) : (
-          displayed.map((item, index) => {
+          items.map((item, index) => {
             const catConfig = CATEGORY_CONFIG[item.category] ?? CATEGORY_CONFIG.industry
             const relTime = formatRelativeTime(item.published_at)
-            const isLast = index === displayed.length - 1
+            const isLast = index === items.length - 1
 
             const inner = (
               <>
@@ -164,6 +210,10 @@ export function IntelligenceFeed({ intelligence_items, intelligence_stats }: Int
                       fontWeight: 500,
                       color: dark ? "#F9FAFB" : "#0D1B2A",
                       lineHeight: 1.4,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical" as const,
+                      overflow: "hidden",
                     }}
                   >
                     {item.title}
@@ -239,17 +289,18 @@ export function IntelligenceFeed({ intelligence_items, intelligence_stats }: Int
       </div>
 
       {/* View all link */}
-      {intelligence_stats.total_items > 15 && (
+      {total > 15 && (
         <div style={{ marginTop: 8, textAlign: "right" as const }}>
-          <span
+          <Link
+            href="/intelligence"
             style={{
               fontSize: 12,
               color: dark ? "#60A5FA" : "#1D4ED8",
-              cursor: "pointer",
+              textDecoration: "none",
             }}
           >
-            View all {intelligence_stats.total_items} items →
-          </span>
+            View all {total} items →
+          </Link>
         </div>
       )}
     </div>
