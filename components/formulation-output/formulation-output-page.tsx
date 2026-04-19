@@ -928,17 +928,19 @@ export function FormulationOutputPage() {
     try {
       const stored = localStorage.getItem("tf_last_formulation")
       if (!stored) return
-      const data = JSON.parse(stored)
-
+      const raw = JSON.parse(stored)
+      // Backend returns { formulation_id, report_level, credits_used, credits_remaining, result: {...} }
+      // Unwrap result so all real content is addressable at top level. Tolerate both shapes.
+      const data = { ...raw, ...(raw.result ?? {}) }
       // Map API response fields onto formula state
       const level: ReportLevel =
         data.report_level === "dossier" ? "dossier" :
         data.report_level === "brief" ? "brief" : "quick"
 
       const mappedIngredients: Ingredient[] = (data.formulation ?? []).map((row: Record<string, unknown>) => ({
-        inci: String(row.inci ?? row.ingredient ?? ""),
+        inci: String(row.inci_name ?? row.inci ?? row.ingredient ?? ""),
         phase: (String(row.phase ?? "A").toUpperCase() as "A" | "B" | "C"),
-        pct: String(row.percentage ?? row.pct ?? "q.s."),
+        pct: String(row.concentration ?? row.percentage ?? row.pct ?? "q.s."),
         function: String(row.function ?? row.role ?? ""),
         safety_score: row.safety_score != null ? Number(row.safety_score) : null,
         confidence: (row.confidence as ConfidenceLevel) ?? "medium",
