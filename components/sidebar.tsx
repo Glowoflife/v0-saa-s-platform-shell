@@ -7,7 +7,7 @@ import {
   FlaskConical,
   Beaker,
   Settings,
-  ShieldCheck,
+  Shield,
   LogOut,
 } from "lucide-react"
 import Link from "next/link"
@@ -16,6 +16,7 @@ import { usePathname } from "next/navigation"
 import { useTheme } from "@/components/theme-context"
 import { useState, useEffect } from "react"
 import { apiFetch } from "@/lib/api-client"
+import { useCredits } from "@/hooks/use-credits"
 
 type NavItem = {
   icon: React.ElementType
@@ -35,6 +36,7 @@ export function Sidebar() {
   const { dark, toggleDark } = useTheme()
   const pathname = usePathname()
   const [isAdmin, setIsAdmin] = useState(false)
+  const credits = useCredits()
 
   useEffect(() => {
     try {
@@ -129,28 +131,31 @@ export function Sidebar() {
           )
         })}
 
-        {/* Admin link — only visible to admin role */}
+        {/* Ops Console — only visible to admin role */}
         {isAdmin && (
-          <Link
-            href="/ops"
-            style={
-              pathname === "/ops"
-                ? { borderLeft: "3px solid #D4A843", backgroundColor: "rgba(212,168,67,0.10)", paddingLeft: 9, textDecoration: "none" }
-                : { borderLeft: "3px solid transparent", paddingLeft: 9, textDecoration: "none" }
-            }
-            className="flex items-center gap-3 h-11 pr-3 w-full"
-            onMouseEnter={(e) => {
-              if (pathname !== "/ops") (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.05)"
-            }}
-            onMouseLeave={(e) => {
-              if (pathname !== "/ops") (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"
-            }}
-          >
-            <ShieldCheck size={18} style={{ color: pathname === "/ops" ? "#D4A843" : "#D4A843", opacity: pathname === "/ops" ? 1 : 0.7 }} />
-            <span style={{ color: pathname === "/ops" ? "#D4A843" : "rgba(212,168,67,0.70)", fontSize: 13, fontWeight: 500 }}>
-              Admin
-            </span>
-          </Link>
+          <>
+            <div style={{ margin: "8px 12px 4px", borderTop: "1px solid rgba(255,255,255,0.08)" }} />
+            <Link
+              href="/ops"
+              style={
+                pathname === "/ops"
+                  ? { borderLeft: "3px solid #D4A843", backgroundColor: "rgba(212,168,67,0.10)", paddingLeft: 9, textDecoration: "none" }
+                  : { borderLeft: "3px solid transparent", paddingLeft: 9, textDecoration: "none" }
+              }
+              className="flex items-center gap-3 h-11 pr-3 w-full"
+              onMouseEnter={(e) => {
+                if (pathname !== "/ops") (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.05)"
+              }}
+              onMouseLeave={(e) => {
+                if (pathname !== "/ops") (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"
+              }}
+            >
+              <Shield size={18} style={{ color: "#D4A843", opacity: pathname === "/ops" ? 1 : 0.7 }} />
+              <span style={{ color: pathname === "/ops" ? "#D4A843" : "rgba(212,168,67,0.70)", fontSize: 13, fontWeight: 500 }}>
+                Ops Console
+              </span>
+            </Link>
+          </>
         )}
       </nav>
 
@@ -188,7 +193,7 @@ export function Sidebar() {
                 whiteSpace: "nowrap",
               }}
             >
-              {"INTELLIGENCE — 27 CREDITS"}
+              {credits !== null ? `${credits} credits` : "— credits"}
             </span>
           </div>
           <Settings size={16} style={{ color: "rgba(255,255,255,0.50)" }} />

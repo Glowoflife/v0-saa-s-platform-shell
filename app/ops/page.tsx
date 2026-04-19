@@ -151,8 +151,9 @@ export default function AdminPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
-  const [grantInputs, setGrantInputs] = useState<Record<string, number>>({})
+  const [grantInputs, setGrantInputs] = useState<Record<string, string>>({})
   const [grantStatus, setGrantStatus] = useState<Record<string, "success" | "error" | null>>({})
+  const [grantErrors, setGrantErrors] = useState<Record<string, string>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const bg = dark ? "#060F1A" : "#F4F6F9"
@@ -253,12 +254,22 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ user_id: userId, credits: parseInt(grantInputs[userId] ?? "", 10) }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        let detail = "Grant failed"
+        try {
+          const body = await res.json()
+          if (body?.detail) detail = body.detail
+        } catch {}
+        setGrantErrors((e) => ({ ...e, [userId]: detail }))
+        setGrantStatus((s) => ({ ...s, [userId]: "error" }))
+        setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 3000)
+        return
+      }
       applyGrant()
+      setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 2000)
     } catch {
       // API not live — apply locally
       applyGrant()
-    } finally {
       setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 2000)
     }
   }
@@ -429,7 +440,7 @@ export default function AdminPage() {
                           <span style={{ fontSize: 12, color: "#065F46" }}>Granted</span>
                         )}
                         {grantStatus[user.user_id] === "error" && (
-                          <span style={{ fontSize: 12, color: "#991B1B" }}>Failed</span>
+                          <span style={{ fontSize: 12, color: "#991B1B" }}>{grantErrors[user.user_id] ?? "Failed"}</span>
                         )}
                         {/* Deactivate / Activate */}
                         <button
