@@ -9,7 +9,7 @@ import { apiFetch } from "@/lib/api-client"
 // Types
 // ---------------------------------------------------------------------------
 interface User {
-  user_id: string
+  id: string
   email: string
   full_name: string
   organisation: string
@@ -53,11 +53,11 @@ interface DashboardData {
 const MOCK: DashboardData = {
   stats: { total_users: 142, active_users: 89, new_this_week: 14, active_this_week: 37, usage_by_level: { quick: 204, brief: 88, dossier: 31 } },
   users: [
-    { user_id: "u001", email: "jeevan@theformulator.ai", full_name: "Jeevan R", organisation: "theformulator.ai", role: "admin", credit_balance: 9999, credits_spent: 0, last_login: "2026-04-03T08:12:00Z", is_active: true },
-    { user_id: "u002", email: "sarah@beautylab.co.uk", full_name: "Sarah Chen", organisation: "Beauty Lab UK", role: "formulator", credit_balance: 27, credits_spent: 13, last_login: "2026-04-02T14:30:00Z", is_active: true },
-    { user_id: "u003", email: "marco@rossicosmetics.it", full_name: "Marco Rossi", organisation: "Rossi Cosmetics", role: "formulator", credit_balance: 4, credits_spent: 36, last_login: "2026-03-28T09:00:00Z", is_active: true },
-    { user_id: "u004", email: "priya@dermaindia.com", full_name: "Priya Nair", organisation: "Derma India", role: "formulator", credit_balance: 0, credits_spent: 20, last_login: "2026-03-15T11:45:00Z", is_active: false },
-    { user_id: "u005", email: "lena@nordicskin.se", full_name: "Lena Johansson", organisation: "Nordic Skin", role: "formulator", credit_balance: 15, credits_spent: 5, last_login: null, is_active: true },
+    { id: "u001", email: "jeevan@theformulator.ai", full_name: "Jeevan R", organisation: "theformulator.ai", role: "admin", credit_balance: 9999, credits_spent: 0, last_login: "2026-04-03T08:12:00Z", is_active: true },
+    { id: "u002", email: "sarah@beautylab.co.uk", full_name: "Sarah Chen", organisation: "Beauty Lab UK", role: "formulator", credit_balance: 27, credits_spent: 13, last_login: "2026-04-02T14:30:00Z", is_active: true },
+    { id: "u003", email: "marco@rossicosmetics.it", full_name: "Marco Rossi", organisation: "Rossi Cosmetics", role: "formulator", credit_balance: 4, credits_spent: 36, last_login: "2026-03-28T09:00:00Z", is_active: true },
+    { id: "u004", email: "priya@dermaindia.com", full_name: "Priya Nair", organisation: "Derma India", role: "formulator", credit_balance: 0, credits_spent: 20, last_login: "2026-03-15T11:45:00Z", is_active: false },
+    { id: "u005", email: "lena@nordicskin.se", full_name: "Lena Johansson", organisation: "Nordic Skin", role: "formulator", credit_balance: 15, credits_spent: 5, last_login: null, is_active: true },
   ],
   recent_transactions: [
     { id: "t001", date: "2026-04-03T08:00:00Z", user_email: "jeevan@theformulator.ai", type: "admin_grant", credits: 40, formulation_id: undefined },
@@ -202,7 +202,6 @@ export default function AdminPage() {
             dossier: usageArray.find((u: any) => u.reason === 'dossier')?.count || 0,
           },
         }
-        json.users = (json.users || []).map((u: any) => ({ ...u, user_id: u.id }))
         json.recent_transactions = (json.recent_transactions || []).map((t: any) => ({
           id: t.id,
           date: t.created_at,
@@ -221,38 +220,22 @@ export default function AdminPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleGrant = async (userId: string) => {
-    const credits = parseInt(grantInputs[userId] ?? "")
+  const handleGrant = async (userId: string, rawCredits: string) => {
+    const credits = parseInt(rawCredits ?? "", 10)
     if (isNaN(credits) || credits <= 0) {
+      setGrantErrors((e) => ({ ...e, [userId]: "Enter a valid credit amount" }))
       setGrantStatus((s) => ({ ...s, [userId]: "error" }))
       setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 2000)
       return
     }
     const token = localStorage.getItem("tf_access_token")
-    const targetUser = data?.users.find((u: User) => u.user_id === userId)
-
-    const applyGrant = () => {
-      const newTx: Transaction = {
-        id: `t${Date.now()}`,
-        date: new Date().toISOString(),
-        user_email: targetUser?.email ?? "",
-        type: "admin_grant",
-        credits,
-      }
-      setData((prev) => prev ? {
-        ...prev,
-        users: prev.users.map((u) => u.user_id === userId ? { ...u, credit_balance: u.credit_balance + credits } : u),
-        recent_transactions: [newTx, ...prev.recent_transactions],
-      } : prev)
-      setGrantStatus((s) => ({ ...s, [userId]: "success" }))
-      setGrantInputs((i) => ({ ...i, [userId]: "" }))
-    }
+    const targetUser = data?.users.find((u: User) => u.id === userId)
 
     try {
       const res = await apiFetch("https://api.theformulator.ai/admin/grant-credits", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ user_id: userId, credits: parseInt(grantInputs[userId] ?? "", 10) }),
+        body: JSON.stringify({ user_id: userId, credits }),
       })
       if (!res.ok) {
         let detail = "Grant failed"
@@ -265,12 +248,25 @@ export default function AdminPage() {
         setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 3000)
         return
       }
-      applyGrant()
+      const newTx: Transaction = {
+        id: `t${Date.now()}`,
+        date: new Date().toISOString(),
+        user_email: targetUser?.email ?? "",
+        type: "admin_grant",
+        credits,
+      }
+      setData((prev) => prev ? {
+        ...prev,
+        users: prev.users.map((u) => u.id === userId ? { ...u, credit_balance: u.credit_balance + credits } : u),
+        recent_transactions: [newTx, ...prev.recent_transactions],
+      } : prev)
+      setGrantStatus((s) => ({ ...s, [userId]: "success" }))
+      setGrantInputs((i) => ({ ...i, [userId]: "" }))
       setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 2000)
-    } catch {
-      // API not live — apply locally
-      applyGrant()
-      setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 2000)
+    } catch (err: any) {
+      setGrantErrors((e) => ({ ...e, [userId]: err?.message ?? "Network error" }))
+      setGrantStatus((s) => ({ ...s, [userId]: "error" }))
+      setTimeout(() => setGrantStatus((s) => ({ ...s, [userId]: null })), 3000)
     }
   }
 
@@ -285,7 +281,7 @@ export default function AdminPage() {
           ...prev.stats,
           active_users: prev.stats.active_users + (newIsActive ? 1 : -1),
         },
-        users: prev.users.map((u) => u.user_id === user.user_id ? { ...u, is_active: newIsActive } : u),
+        users: prev.users.map((u) => u.id === user.id ? { ...u, is_active: newIsActive } : u),
       } : prev)
     }
 
@@ -293,13 +289,49 @@ export default function AdminPage() {
       const res = await fetch("https://api.theformulator.ai/admin/set-active", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ user_id: user.user_id, is_active: newIsActive }),
+        body: JSON.stringify({ user_id: user.id, is_active: newIsActive }),
       })
       if (!res.ok) throw new Error()
       applyToggle()
     } catch {
       // API not live — apply locally
       applyToggle()
+    }
+  }
+
+  const handleDeleteUser = async (user: User) => {
+    if (!confirm(`Permanently delete ${user.email}? This cannot be undone.`)) return
+    const token = localStorage.getItem("tf_access_token")
+    try {
+      const res = await apiFetch("https://api.theformulator.ai/admin/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ user_id: user.id }),
+      })
+      if (res.status === 404) {
+        alert("Delete endpoint not yet implemented")
+        return
+      }
+      if (!res.ok) {
+        let detail = "Delete failed"
+        try {
+          const body = await res.json()
+          if (body?.detail) detail = body.detail
+        } catch {}
+        alert(detail)
+        return
+      }
+      setData((prev) => prev ? {
+        ...prev,
+        users: prev.users.filter((u) => u.id !== user.id),
+        stats: {
+          ...prev.stats,
+          total_users: prev.stats.total_users - 1,
+          active_users: prev.stats.active_users - (user.is_active ? 1 : 0),
+        },
+      } : prev)
+    } catch (err: any) {
+      alert(err?.message ?? "Network error")
     }
   }
 
@@ -364,7 +396,7 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user.user_id} style={{ borderBottom: `1px solid ${border}` }}>
+                <tr key={user.id} style={{ borderBottom: `1px solid ${border}` }}>
                   {/* User */}
                   <td style={{ padding: "12px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -372,7 +404,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(user.email)
-                          setCopiedId(user.user_id)
+                          setCopiedId(user.id)
                           setTimeout(() => setCopiedId(null), 1500)
                         }}
                         title="Copy email"
@@ -380,11 +412,11 @@ export default function AdminPage() {
                           display: "flex", alignItems: "center", justifyContent: "center",
                           width: 22, height: 22, padding: 0, border: "none", borderRadius: 4,
                           backgroundColor: "transparent", cursor: "pointer",
-                          color: copiedId === user.user_id ? "#065F46" : "#9CA3AF",
+                          color: copiedId === user.id ? "#065F46" : "#9CA3AF",
                           flexShrink: 0,
                         }}
                       >
-                        {copiedId === user.user_id
+                        {copiedId === user.id
                           ? <Check size={12} />
                           : <ClipboardCopy size={12} />
                         }
@@ -418,8 +450,8 @@ export default function AdminPage() {
                           type="number"
                           min={1}
                           placeholder="10"
-                          value={grantInputs[user.user_id] ?? ""}
-                          onChange={(e) => setGrantInputs((s) => ({ ...s, [user.user_id]: e.target.value }))}
+                          value={grantInputs[user.id] ?? ""}
+                          onChange={(e) => setGrantInputs((s) => ({ ...s, [user.id]: e.target.value }))}
                           style={{
                             width: 60, height: 32, borderRadius: 6, border: `1px solid ${border}`,
                             padding: "0 8px", fontSize: 13, backgroundColor: dark ? "#1B3A5C" : "#F9FAFB",
@@ -427,7 +459,7 @@ export default function AdminPage() {
                           }}
                         />
                         <button
-                          onClick={() => handleGrant(user.user_id)}
+                          onClick={() => handleGrant(user.id, grantInputs[user.id])}
                           style={{
                             height: 32, padding: "0 12px", borderRadius: 6, border: "none",
                             backgroundColor: "#D4A843", color: "#0D1B2A",
@@ -436,11 +468,11 @@ export default function AdminPage() {
                         >
                           Grant
                         </button>
-                        {grantStatus[user.user_id] === "success" && (
+                        {grantStatus[user.id] === "success" && (
                           <span style={{ fontSize: 12, color: "#065F46" }}>Granted</span>
                         )}
-                        {grantStatus[user.user_id] === "error" && (
-                          <span style={{ fontSize: 12, color: "#991B1B" }}>{grantErrors[user.user_id] ?? "Failed"}</span>
+                        {grantStatus[user.id] === "error" && (
+                          <span style={{ fontSize: 12, color: "#991B1B" }}>{grantErrors[user.id] ?? "Failed"}</span>
                         )}
                         {/* Deactivate / Activate */}
                         <button
@@ -453,6 +485,17 @@ export default function AdminPage() {
                           }}
                         >
                           {user.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                        {/* Delete */}
+                        <button
+                          onClick={() => handleDeleteUser(user)}
+                          style={{
+                            height: 32, padding: "0 12px", borderRadius: 6, border: "none",
+                            backgroundColor: "#B91C1C", color: "#FFFFFF",
+                            fontSize: 12, fontWeight: 600, cursor: "pointer",
+                          }}
+                        >
+                          Delete
                         </button>
                       </div>
                     )}
