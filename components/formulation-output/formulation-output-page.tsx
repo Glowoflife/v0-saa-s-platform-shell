@@ -946,7 +946,22 @@ export function FormulationOutputPage() {
         confidence: (row.confidence as ConfidenceLevel) ?? "medium",
       }))
 
-      const mappedRegulatory: RegulatoryItem[] = (data.regulatory_flags ?? []).map((r: Record<string, unknown>) => ({
+      // Backend may return regulatory_flags as an array (legacy) or an object
+      // with markets_checked + flags (current). Normalise to array for mapping.
+      let regulatoryRaw: unknown[] = []
+      if (Array.isArray(data.regulatory_flags)) {
+        regulatoryRaw = data.regulatory_flags
+      } else if (data.regulatory_flags && typeof data.regulatory_flags === "object") {
+        const rf = data.regulatory_flags as Record<string, unknown>
+        const markets = Array.isArray(rf.markets_checked) ? rf.markets_checked : []
+        const passed = rf.prohibited_avoided !== false && rf.restrictions_respected !== false
+        regulatoryRaw = markets.map((m: unknown) => ({
+          market: String(m),
+          status: passed ? "pass" : "warning",
+          notes: passed ? "No prohibited ingredients; restrictions respected." : "Review flagged items.",
+        }))
+      }
+      const mappedRegulatory: RegulatoryItem[] = regulatoryRaw.map((r: Record<string, unknown>) => ({
         market: String(r.market ?? ""),
         status: (r.status as RegStatus) ?? "warning",
         notes: String(r.notes ?? r.detail ?? ""),
@@ -963,9 +978,16 @@ export function FormulationOutputPage() {
               generated: true,
               ingredients: mappedIngredients.length > 0 ? mappedIngredients : prev.variants[0].ingredients,
               regulatoryStatus: mappedRegulatory.length > 0 ? mappedRegulatory : prev.variants[0].regulatoryStatus,
-              formulationNotes: data.processing_instructions
-                ? [data.processing_instructions, ...(data.expected_ph ? [`Expected pH: ${data.expected_ph}`] : [])]
-                : prev.variants[0].formulationNotes,
+              formulationNotes: (() => {
+                const instructions = Array.isArray(data.processing_instructions)
+                  ? data.processing_instructions.map(String)
+                  : data.processing_instructions
+                    ? [String(data.processing_instructions)]
+                    : []
+                const phNote = data.expected_ph ? [`Expected pH: ${data.expected_ph}`] : []
+                const combined = [...instructions, ...phNote]
+                return combined.length > 0 ? combined : prev.variants[0].formulationNotes
+              })(),
             },
             ...prev.variants.slice(1),
           ],
